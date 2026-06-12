@@ -7,6 +7,7 @@ import path from 'path';
 
 interface AutomationRow {
   id: string;
+  name: string | null;
   action_type: string;
   action_config: string;
   subject: string | null;
