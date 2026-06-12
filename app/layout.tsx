@@ -13,8 +13,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "GEEKFACT — Carrières",
-  description: "Rejoignez GEEKFACT. Découvrez nos offres d'emploi et postulez en ligne.",
+  title: "Pintalent",
+  description: "Pintalent — Plateforme de recrutement intelligente.",
+  icons: {
+    icon: '/favicon.svg',
+    shortcut: '/favicon.svg',
+    apple: '/favicon.svg',
+  },
 };
 
 export default function RootLayout({
