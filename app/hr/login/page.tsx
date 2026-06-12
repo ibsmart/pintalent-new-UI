@@ -21,7 +21,7 @@ export default function LoginPage() {
         body: JSON.stringify({ email, password })
       });
       if (res.ok) {
-        router.push('/hr/dashboard');
+        window.location.href = '/hr/dashboard';
       } else {
         const data = await res.json();
         setError(data.error || 'Identifiants incorrects');

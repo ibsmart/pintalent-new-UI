@@ -29,7 +29,7 @@ function LoginForm() {
     });
     const data = await res.json();
     if (!res.ok) { setError(data.error || 'Erreur de connexion'); setLoading(false); return; }
-    router.replace(redirect);
+    window.location.href = redirect;
   }
 
   return (
