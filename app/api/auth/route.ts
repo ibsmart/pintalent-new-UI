@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getDb } from '@/lib/db';
-import { signToken, checkPassword } from '@/lib/auth';
+import { signToken, verifyPassword as checkPassword } from '@/lib/auth';
 
 export async function POST(req: NextRequest) {
   const { email, password } = await req.json();
