@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 
@@ -46,7 +46,7 @@ function ScoreBar({ score }: { score: number }) {
   );
 }
 
-export default function PipelinePage() {
+function PipelineContent() {
   const searchParams = useSearchParams();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -190,5 +190,13 @@ export default function PipelinePage() {
         </div>
       )}
     </div>
+  );
+}
+
+export default function PipelinePage() {
+  return (
+    <Suspense fallback={<div className="p-8 text-gray-400">Chargement…</div>}>
+      <PipelineContent />
+    </Suspense>
   );
 }
