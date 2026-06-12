@@ -175,7 +175,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
 
   async function deleteCandidate() {
     if (!app) return;
-    if (!confirm(`Supprimer définitivement ${app.candidate_name} ? Le candidat et toutes ses candidatures seront supprimés.`)) return;
+    if (!confirm(`Supprimer définitivement ${app.name} ? Le candidat et toutes ses candidatures seront supprimés.`)) return;
     const res = await fetch(`/api/candidates/${app.candidate_id}`, { method: 'DELETE' });
     if (res.ok) router.push('/hr/candidates');
     else alert('Erreur lors de la suppression');

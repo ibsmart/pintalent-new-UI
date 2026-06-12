@@ -513,7 +513,7 @@ export default function ProspectingPage() {
                   {jobs.map(job => {
                     const selected = selectedJobs.has(job.id);
                     // Count candidates already in pipeline for this job
-                    const inPipeline = applications.filter(a => a.job_id === job.id || a.jobId === job.id).length;
+                    const inPipeline = applications.filter(a => a.jobId === job.id).length;
                     return (
                       <div
                         key={job.id}
