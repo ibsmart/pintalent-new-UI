@@ -114,13 +114,6 @@ function LoginForm() {
             </button>
           </form>
 
-          {/* Hint */}
-          <div className="mt-6 pt-6 border-t border-white/10">
-            <p className="text-center text-xs text-gray-500">
-              Compte par défaut :<br />
-              <span className="text-gray-400 font-mono">admin@geekfact.com</span> / <span className="text-gray-400 font-mono">Admin2024!</span>
-            </p>
-          </div>
         </div>
 
         <p className="text-center text-gray-600 text-xs mt-6">

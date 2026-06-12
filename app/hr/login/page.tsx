@@ -71,11 +71,6 @@ export default function LoginPage() {
           </button>
         </form>
 
-        <div className="mt-6 p-4 bg-blue-50 rounded-xl border border-blue-100">
-          <p className="text-xs text-blue-700 font-medium mb-1">Identifiants de démonstration</p>
-          <p className="text-xs text-blue-600">Email : rh@bankofafrica.ma</p>
-          <p className="text-xs text-blue-600">Mot de passe : Admin2024!</p>
-        </div>
       </div>
     </div>
   );
