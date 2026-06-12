@@ -36,7 +36,7 @@ export default function ClassicTemplate({ jobs, filtered, s, search, setSearch, 
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
             {s.logo_url
-              ? <img src={s.logo_url} alt={companyName} className="h-10 w-auto object-contain" />
+              ? <img src={s.logo_url} alt={companyName} className="h-14 w-auto object-contain" />
               : <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: primary }}><span className="text-white font-bold text-sm">{logoInitials}</span></div>
             }
             <div>
