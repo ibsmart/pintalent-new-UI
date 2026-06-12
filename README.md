@@ -1,36 +1,30 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# GEEKFACT — Plateforme de Recrutement
 
-## Getting Started
+Application complète de recrutement : landing page publique + CRM RH back-office.
 
-First, run the development server:
+## Démarrage rapide
 
 ```bash
+npm install
+cp .env.local.example .env.local   # puis renseigner ANTHROPIC_API_KEY
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Ouvrir [http://localhost:3000](http://localhost:3000) — landing page candidats  
+Ouvrir [http://localhost:3000/hr/dashboard](http://localhost:3000/hr/dashboard) — CRM RH
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+## Documentation
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+| Fichier | Contenu |
+|---------|---------|
+| [ARCHITECTURE.md](./ARCHITECTURE.md) | Stack technique, structure des fichiers, base de données |
+| [FEATURES.md](./FEATURES.md) | Toutes les fonctionnalités détaillées |
+| [API.md](./API.md) | Référence de toutes les routes API |
+| [DEPLOYMENT.md](./DEPLOYMENT.md) | Installation en production, packages Lite vs Entreprise |
 
-## Learn More
+## Stack
 
-To learn more about Next.js, take a look at the following resources:
-
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- **Next.js 16** (App Router, TypeScript, Tailwind CSS v4)
+- **SQLite** via `better-sqlite3` — fichier `data/recruitment.db`
+- **Claude Haiku** (`claude-haiku-4-5-20251001`) — scoring CV + génération de fiches
+- **pdf-parse v1** + **mammoth** — extraction texte PDF/DOCX
