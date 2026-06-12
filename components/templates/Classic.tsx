@@ -35,9 +35,10 @@ export default function ClassicTemplate({ jobs, filtered, s, search, setSearch, 
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow overflow-hidden" style={{ backgroundColor: primary }}>
-              {s.logo_url ? <img src={s.logo_url} alt={companyName} className="w-9 h-9 object-contain" /> : <span className="text-white font-bold text-sm">{logoInitials}</span>}
-            </div>
+            {s.logo_url
+              ? <img src={s.logo_url} alt={companyName} className="h-10 w-auto object-contain" />
+              : <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: primary }}><span className="text-white font-bold text-sm">{logoInitials}</span></div>
+            }
             <div>
               <div className="font-bold text-gray-900 text-lg">{companyName}</div>
               <div className="text-xs text-gray-500">Espace Carrières</div>
@@ -212,9 +213,10 @@ export function Footer({ s, primary, companyName, logoInitials }: { s: Settings;
     <footer className="bg-gray-900 text-white py-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl flex items-center justify-center overflow-hidden" style={{ backgroundColor: primary }}>
-            {s.logo_url ? <img src={s.logo_url} alt={companyName} className="w-9 h-9 object-contain" /> : <span className="text-white font-bold text-sm">{logoInitials}</span>}
-          </div>
+          {s.logo_url
+            ? <img src={s.logo_url} alt={companyName} className="h-10 w-auto object-contain brightness-0 invert" />
+            : <div className="w-10 h-10 rounded-xl flex items-center justify-center" style={{ backgroundColor: primary }}><span className="text-white font-bold text-sm">{logoInitials}</span></div>
+          }
           <div>
             <div className="font-bold">{companyName}</div>
             <div className="text-gray-400 text-sm">Espace Carrières</div>
