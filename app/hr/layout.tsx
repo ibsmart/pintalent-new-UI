@@ -65,7 +65,7 @@ const NAV_GROUPS = [
   {
     label: 'Pilotage',
     items: [
-      { href: '/hr/dashboard',    label: 'Tableau de bord',  icon: <IconGrid />,      countKey: '' },
+      { href: '/hr/dashboard',    label: 'Tableau de bord',  icon: <IconGrid />,      countKey: '', soon: false },
       { href: '/hr/jobs',         label: 'Offres d\'emploi', icon: <IconBriefcase />, countKey: 'jobs' },
       { href: '/hr/candidates',   label: 'Candidats',        icon: <IconUsers />,     countKey: 'candidates' },
       { href: '/hr/pipeline',     label: 'Pipeline',         icon: <IconKanban />,    countKey: '' },
@@ -75,7 +75,7 @@ const NAV_GROUPS = [
   {
     label: 'Analyse & Outils',
     items: [
-      { href: '/hr/prospecting',  label: 'Vivier de talents', icon: <IconStar />,     countKey: '' },
+      { href: '',                  label: 'Vivier de talents', icon: <IconStar />,     countKey: '', soon: true },
       { href: '/hr/job-boards',   label: 'Diffusion offres',  icon: <IconSatellite />,countKey: '' },
       { href: '/hr/prospecting',  label: 'Prospection email', icon: <IconMail />,     countKey: '' },
     ],
@@ -158,8 +158,20 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
             </p>
             <div className="space-y-0.5">
               {group.items.map(item => {
-                const active = isActive(item.href);
+                const active = !item.soon && isActive(item.href);
                 const count = item.countKey ? (counts[item.countKey as keyof Counts] ?? 0) : 0;
+                if (item.soon) {
+                  return (
+                    <div
+                      key={item.href + item.label}
+                      className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed select-none"
+                    >
+                      <span className="flex-shrink-0 text-gray-500">{item.icon}</span>
+                      <span className="flex-1 truncate text-gray-400">{item.label}</span>
+                      <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 uppercase tracking-wide">Soon</span>
+                    </div>
+                  );
+                }
                 return (
                   <Link
                     key={item.href + item.label}
