@@ -1,8 +1,8 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32" fill="none">
   <!-- Background -->
-  <rect width="32" height="32" rx="8" fill="#059669"/>
+  <rect width="32" height="32" rx="8" fill="#61c2a5"/>
   <!-- Pin shape -->
   <path d="M16 4C12.134 4 9 7.134 9 11c0 5.25 7 17 7 17s7-11.75 7-17c0-3.866-3.134-7-7-7z" fill="white"/>
   <!-- Inner circle -->
-  <circle cx="16" cy="11" r="3" fill="#059669"/>
+  <circle cx="16" cy="11" r="3" fill="#61c2a5"/>
 </svg>

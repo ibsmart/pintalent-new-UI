@@ -16,7 +16,7 @@ export const metadata: Metadata = {
   title: "Pintalent",
   description: "Pintalent — Plateforme de recrutement intelligente.",
   icons: {
-    icon: '/favicon.svg',
+    icon: [{ url: '/favicon.svg', type: 'image/svg+xml' }],
     shortcut: '/favicon.svg',
     apple: '/favicon.svg',
   },
