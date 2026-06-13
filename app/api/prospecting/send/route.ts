@@ -144,7 +144,7 @@ export async function POST(req: NextRequest) {
     const getSetting = (key: string) =>
       (db.prepare('SELECT value FROM settings WHERE key=?').get(key) as { value: string } | undefined)?.value || '';
 
-    const companyName = getSetting('smtp_from_name') || 'Pintalent';
+    const companyName = getSetting('company_name') || getSetting('smtp_from_name') || 'Pintalent';
     const baseUrl = req.headers.get('origin') || `https://${req.headers.get('host')}`;
 
     // Fetch jobs
