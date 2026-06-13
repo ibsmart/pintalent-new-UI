@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "dashboard": "Tableau de bord",
+    "campaigns": "Campagnes",
+    "pipeline": "Pipeline",
+    "candidates": "Candidats",
+    "jobs": "Offres d'emploi",
+    "prospecting": "Prospection",
+    "settings": "Personnalisation",
+    "jobBoards": "Diffusion offres",
+    "team": "Équipe",
+    "cvTemplates": "Templates CV",
+    "emailSettings": "Paramètres",
+    "aiAgent": "AI Agent",
+    "publicSite": "Site public",
+    "logout": "Déconnexion",
+    "pilotage": "Pilotage",
+    "analyseOutils": "Analyse & Outils",
+    "administration": "Administration",
+    "talentPool": "Vivier de talents"
+  },
+  "common": {
+    "save": "Enregistrer",
+    "cancel": "Annuler",
+    "delete": "Supprimer",
+    "edit": "Modifier",
+    "add": "Ajouter",
+    "search": "Rechercher",
+    "loading": "Chargement…",
+    "noResults": "Aucun résultat",
+    "confirm": "Confirmer",
+    "close": "Fermer",
+    "back": "Retour",
+    "next": "Suivant",
+    "yes": "Oui",
+    "no": "Non",
+    "soon": "Bientôt"
+  },
+  "stages": {
+    "Nouveau": "Nouveau",
+    "Présélectionné": "Présélectionné",
+    "Entretien": "Entretien",
+    "Offre": "Offre",
+    "Embauché": "Embauché",
+    "Rejeté": "Rejeté"
+  },
+  "jobs": {
+    "title": "Offres d'emploi",
+    "add": "Nouvelle offre",
+    "search": "Rechercher une offre…",
+    "noJobs": "Aucune offre",
+    "contract": "Contrat",
+    "location": "Localisation",
+    "department": "Département",
+    "description": "Description",
+    "experience": "Expérience"
+  },
+  "candidates": {
+    "title": "Candidats",
+    "add": "Ajouter un candidat",
+    "search": "Rechercher un candidat…",
+    "noCandidates": "Aucun candidat",
+    "name": "Nom",
+    "email": "Email",
+    "phone": "Téléphone",
+    "stage": "Étape",
+    "score": "Score",
+    "cv": "CV",
+    "extracting": "Extraction…"
+  },
+  "dashboard": {
+    "title": "Tableau de bord",
+    "totalCandidates": "Total candidats",
+    "activeJobs": "Offres actives",
+    "interviews": "Entretiens"
+  },
+  "careers": {
+    "hrSpace": "Espace RH",
+    "openPositions": "postes ouverts",
+    "applyNow": "Voir les offres",
+    "seeMore": "En savoir plus",
+    "ourJobs": "Nos offres",
+    "noJobs": "Aucune offre disponible",
+    "apply": "Postuler"
+  },
+  "auth": {
+    "login": "Connexion",
+    "email": "Email",
+    "password": "Mot de passe",
+    "loginButton": "Se connecter",
+    "loginError": "Email ou mot de passe incorrect"
+  }
+}

@@ -4,6 +4,8 @@ import { usePathname, useRouter } from 'next/navigation';
 import Link from 'next/link';
 import { useState, useEffect } from 'react';
 import { PermissionsProvider } from '@/lib/permissions-context';
+import { useTranslations, useLocale } from 'next-intl';
+import LanguageSwitcher from '@/components/LanguageSwitcher';
 
 interface SessionUser { id: string; name: string; email: string; role: string; avatar_color: string; }
 interface Counts { jobs?: number; candidates?: number; interviews?: number; }
@@ -63,38 +65,6 @@ function IconX() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>;
 }
 
-// ── Nav structure ──────────────────────────────────────────
-const NAV_GROUPS = [
-  {
-    label: 'Pilotage',
-    items: [
-      { href: '/hr/dashboard',    label: 'Tableau de bord',  Icon: IconGrid,      countKey: '', soon: false },
-      { href: '/hr/jobs',         label: 'Offres d\'emploi', Icon: IconBriefcase, countKey: 'jobs' },
-      { href: '/hr/candidates',   label: 'Candidats',        Icon: IconUsers,     countKey: 'candidates' },
-      { href: '/hr/pipeline',     label: 'Pipeline',         Icon: IconKanban,    countKey: '' },
-      { href: '/hr/projects',     label: 'Campagnes',        Icon: IconCalendar,  countKey: '' },
-    ],
-  },
-  {
-    label: 'Analyse & Outils',
-    items: [
-      { href: '/hr/ai-agent',    label: 'AI Agent',          Icon: IconRobot,     countKey: '' },
-      { href: '',                label: 'Vivier de talents',  Icon: IconStar,      countKey: '', soon: true },
-      { href: '/hr/job-boards',  label: 'Diffusion offres',  Icon: IconSatellite, countKey: '' },
-      { href: '/hr/prospecting', label: 'Prospection email', Icon: IconMail,      countKey: '' },
-    ],
-  },
-  {
-    label: 'Administration',
-    items: [
-      { href: '/hr/settings',       label: 'Personnalisation', Icon: IconPalette,  countKey: '' },
-      { href: '/hr/team',           label: 'Équipe',           Icon: IconTeam,     countKey: '' },
-      { href: '/hr/cv-templates',   label: 'Templates CV',     Icon: IconGlobe,    countKey: '' },
-      { href: '/hr/email-settings', label: 'Paramètres',       Icon: IconSettings, countKey: '' },
-    ],
-  },
-];
-
 // ── Badge ──────────────────────────────────────────────────
 function Badge({ n }: { n: number }) {
   if (!n) return null;
@@ -109,9 +79,43 @@ function Badge({ n }: { n: number }) {
 export default function HRLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const router = useRouter();
+  const locale = useLocale();
+  const t = useTranslations('nav');
+  const tCommon = useTranslations('common');
   const [user, setUser] = useState<SessionUser | null>(null);
   const [counts, setCounts] = useState<Counts>({});
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  const NAV_GROUPS = [
+    {
+      label: t('pilotage'),
+      items: [
+        { href: `/${locale}/hr/dashboard`,    label: t('dashboard'),  Icon: IconGrid,      countKey: '', soon: false },
+        { href: `/${locale}/hr/jobs`,         label: t('jobs'), Icon: IconBriefcase, countKey: 'jobs' },
+        { href: `/${locale}/hr/candidates`,   label: t('candidates'),        Icon: IconUsers,     countKey: 'candidates' },
+        { href: `/${locale}/hr/pipeline`,     label: t('pipeline'),         Icon: IconKanban,    countKey: '' },
+        { href: `/${locale}/hr/projects`,     label: t('campaigns'),        Icon: IconCalendar,  countKey: '' },
+      ],
+    },
+    {
+      label: t('analyseOutils'),
+      items: [
+        { href: `/${locale}/hr/ai-agent`,    label: t('aiAgent'),          Icon: IconRobot,     countKey: '' },
+        { href: '',                           label: t('talentPool'),        Icon: IconStar,      countKey: '', soon: true },
+        { href: `/${locale}/hr/job-boards`,  label: t('jobBoards'),         Icon: IconSatellite, countKey: '' },
+        { href: `/${locale}/hr/prospecting`, label: t('prospecting'), Icon: IconMail,      countKey: '' },
+      ],
+    },
+    {
+      label: t('administration'),
+      items: [
+        { href: `/${locale}/hr/settings`,       label: t('settings'), Icon: IconPalette,  countKey: '' },
+        { href: `/${locale}/hr/team`,           label: t('team'),           Icon: IconTeam,     countKey: '' },
+        { href: `/${locale}/hr/cv-templates`,   label: t('cvTemplates'),     Icon: IconGlobe,    countKey: '' },
+        { href: `/${locale}/hr/email-settings`, label: t('emailSettings'),   Icon: IconSettings, countKey: '' },
+      ],
+    },
+  ];
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(d => setUser(d));
@@ -131,7 +135,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' });
-    router.push('/login');
+    router.push(`/${locale}/login`);
   }
 
   function isActive(href: string) {
@@ -149,6 +153,9 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
           <div>
             <div className="font-bold text-sm text-white">GEEKFACT</div>
             <div className="text-gray-400 text-xs">CRM Recrutement</div>
+          </div>
+          <div className="ml-auto">
+            <LanguageSwitcher />
           </div>
         </div>
       </div>
@@ -172,7 +179,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
                     >
                       <span className="flex-shrink-0 text-gray-500"><item.Icon /></span>
                       <span className="flex-1 truncate text-gray-400">{item.label}</span>
-                      <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 uppercase tracking-wide">Soon</span>
+                      <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 uppercase tracking-wide">{tCommon('soon')}</span>
                     </div>
                   );
                 }
@@ -201,9 +208,9 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
 
       {/* Footer */}
       <div className="px-3 py-4 border-t border-gray-800 space-y-0.5">
-        <Link href="/" className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+        <Link href={`/${locale}`} className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
           <span className="text-gray-500 group-hover:text-gray-300"><IconGlobe /></span>
-          <span>Site public</span>
+          <span>{t('publicSite')}</span>
         </Link>
         {user && (
           <div className="mt-2 pt-2 border-t border-gray-800">
@@ -220,7 +227,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
             <button onClick={logout}
               className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-all">
               <span className="text-gray-500 group-hover:text-red-400"><IconLogout /></span>
-              <span>Déconnexion</span>
+              <span>{t('logout')}</span>
             </button>
           </div>
         )}

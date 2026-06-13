@@ -39,3 +39,9 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# App data (persistent, not versioned)
+/data/
+/uploads/
+/recruitment.db
+/.claude/

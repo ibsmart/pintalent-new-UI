@@ -1,0 +1,93 @@
+{
+  "nav": {
+    "dashboard": "Dashboard",
+    "campaigns": "Campaigns",
+    "pipeline": "Pipeline",
+    "candidates": "Candidates",
+    "jobs": "Job Listings",
+    "prospecting": "Prospecting",
+    "settings": "Customization",
+    "jobBoards": "Job Distribution",
+    "team": "Team",
+    "cvTemplates": "CV Templates",
+    "emailSettings": "Settings",
+    "aiAgent": "AI Agent",
+    "publicSite": "Public Site",
+    "logout": "Logout",
+    "pilotage": "Management",
+    "analyseOutils": "Analytics & Tools",
+    "administration": "Administration",
+    "talentPool": "Talent Pool"
+  },
+  "common": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "search": "Search",
+    "loading": "Loading…",
+    "noResults": "No results",
+    "confirm": "Confirm",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "yes": "Yes",
+    "no": "No",
+    "soon": "Soon"
+  },
+  "stages": {
+    "Nouveau": "New",
+    "Présélectionné": "Shortlisted",
+    "Entretien": "Interview",
+    "Offre": "Offer",
+    "Embauché": "Hired",
+    "Rejeté": "Rejected"
+  },
+  "jobs": {
+    "title": "Job Listings",
+    "add": "New Job",
+    "search": "Search jobs…",
+    "noJobs": "No jobs found",
+    "contract": "Contract",
+    "location": "Location",
+    "department": "Department",
+    "description": "Description",
+    "experience": "Experience"
+  },
+  "candidates": {
+    "title": "Candidates",
+    "add": "Add Candidate",
+    "search": "Search candidates…",
+    "noCandidates": "No candidates",
+    "name": "Name",
+    "email": "Email",
+    "phone": "Phone",
+    "stage": "Stage",
+    "score": "Score",
+    "cv": "Resume",
+    "extracting": "Extracting…"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "totalCandidates": "Total Candidates",
+    "activeJobs": "Active Jobs",
+    "interviews": "Interviews"
+  },
+  "careers": {
+    "hrSpace": "HR Space",
+    "openPositions": "open positions",
+    "applyNow": "View Jobs",
+    "seeMore": "Learn More",
+    "ourJobs": "Our Openings",
+    "noJobs": "No positions available",
+    "apply": "Apply"
+  },
+  "auth": {
+    "login": "Login",
+    "email": "Email",
+    "password": "Password",
+    "loginButton": "Sign In",
+    "loginError": "Invalid email or password"
+  }
+}
