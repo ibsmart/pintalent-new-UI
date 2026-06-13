@@ -5,12 +5,13 @@ import { sendEmail } from '@/lib/email';
 function generateJobCard(job: {
   title: string; location: string; contract_type: string;
   description: string; id: string;
-}, baseUrl: string): string {
+}, baseUrl: string, primaryColor: string): string {
   const excerpt = (job.description || '').replace(/<[^>]*>/g, '').slice(0, 200).trim();
   const applyUrl = `${baseUrl}/jobs/${job.id}`;
-  const contractBadge = {
+  const contractBadge: Record<string, string> = {
     CDI: '#059669', CDD: '#2563eb', Freelance: '#7c3aed', Stage: '#d97706', Alternance: '#0891b2'
-  }[job.contract_type] || '#6b7280';
+  };
+  const badgeColor = contractBadge[job.contract_type] || '#6b7280';
 
   return `
   <table width="100%" cellpadding="0" cellspacing="0" style="border:1px solid #e5e7eb;border-radius:12px;margin-bottom:20px;overflow:hidden;">
@@ -26,7 +27,7 @@ function generateJobCard(job: {
                     <span style="color:#6b7280;font-size:13px;">📍 ${job.location}</span>
                   </td>
                   <td>
-                    <span style="display:inline-block;background:${contractBadge}20;color:${contractBadge};font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;">
+                    <span style="display:inline-block;background:${badgeColor}20;color:${badgeColor};font-size:12px;font-weight:600;padding:3px 10px;border-radius:20px;">
                       ${job.contract_type}
                     </span>
                   </td>
@@ -34,7 +35,7 @@ function generateJobCard(job: {
               </table>
               ${excerpt ? `<p style="color:#4b5563;font-size:14px;line-height:1.6;margin:0 0 18px;">${excerpt}${excerpt.length >= 200 ? '…' : ''}</p>` : ''}
               <a href="${applyUrl}"
-                style="display:inline-block;background:#10b981;color:white;padding:11px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;letter-spacing:0.01em;">
+                style="display:inline-block;background:${primaryColor};color:white;padding:11px 24px;border-radius:8px;text-decoration:none;font-size:14px;font-weight:600;letter-spacing:0.01em;">
                 Voir l'offre et postuler →
               </a>
             </td>
@@ -51,8 +52,10 @@ function generateEmailHtml(params: {
   jobCards: string;
   companyName: string;
   fromEmail: string;
+  primaryColor: string;
 }): string {
   const firstName = params.candidateName.split(' ')[0];
+  const c = params.primaryColor;
   return `<!DOCTYPE html>
 <html lang="fr">
 <head>
@@ -68,7 +71,7 @@ function generateEmailHtml(params: {
 
           <!-- Header -->
           <tr>
-            <td style="background:linear-gradient(135deg,#059669 0%,#10b981 100%);border-radius:16px 16px 0 0;padding:36px 40px 32px;">
+            <td style="background:${c};border-radius:16px 16px 0 0;padding:36px 40px 32px;">
               <table width="100%" cellpadding="0" cellspacing="0">
                 <tr>
                   <td>
@@ -76,9 +79,7 @@ function generateEmailHtml(params: {
                     <h1 style="color:white;margin:0;font-size:26px;font-weight:800;letter-spacing:-0.02em;">${params.companyName}</h1>
                   </td>
                   <td align="right">
-                    <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;display:inline-flex;align-items:center;justify-content:center;">
-                      <span style="font-size:24px;">🎯</span>
-                    </div>
+                    <div style="width:48px;height:48px;background:rgba(255,255,255,0.2);border-radius:12px;text-align:center;line-height:48px;font-size:24px;">🎯</div>
                   </td>
                 </tr>
               </table>
@@ -88,49 +89,32 @@ function generateEmailHtml(params: {
           <!-- Body -->
           <tr>
             <td style="background:white;padding:40px 40px 32px;">
-
-              <!-- Greeting -->
               <p style="color:#111827;font-size:18px;font-weight:600;margin:0 0 6px;">Bonjour ${firstName},</p>
-              <div style="width:40px;height:3px;background:#10b981;border-radius:2px;margin-bottom:20px;"></div>
-
-              <!-- Intro -->
+              <div style="width:40px;height:3px;background:${c};border-radius:2px;margin-bottom:20px;"></div>
               <p style="color:#374151;font-size:15px;line-height:1.7;margin:0 0 32px;">${params.intro.replace(/\n/g, '<br>')}</p>
-
-              <!-- Jobs heading -->
-              <p style="color:#111827;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 16px;color:#6b7280;">
+              <p style="color:#6b7280;font-size:13px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;margin:0 0 16px;">
                 Opportunités sélectionnées pour vous
               </p>
-
-              <!-- Job cards -->
               ${params.jobCards}
-
-              <!-- CTA footer text -->
-              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:#f0fdf4;border-radius:10px;border:1px solid #bbf7d0;">
+              <table width="100%" cellpadding="0" cellspacing="0" style="margin-top:8px;background:${c}12;border-radius:10px;border:1px solid ${c}40;">
                 <tr>
                   <td style="padding:16px 20px;">
-                    <p style="color:#065f46;font-size:13px;line-height:1.6;margin:0;">
+                    <p style="color:#374151;font-size:13px;line-height:1.6;margin:0;">
                       💡 Ces opportunités ont été sélectionnées en fonction de votre profil. Cliquez sur une offre pour en savoir plus et candidater directement en ligne.
                     </p>
                   </td>
                 </tr>
               </table>
-
             </td>
           </tr>
 
           <!-- Footer -->
           <tr>
             <td style="background:#f9fafb;border-top:1px solid #e5e7eb;border-radius:0 0 16px 16px;padding:20px 40px;">
-              <table width="100%" cellpadding="0" cellspacing="0">
-                <tr>
-                  <td>
-                    <p style="color:#9ca3af;font-size:12px;margin:0;line-height:1.6;">
-                      Cet email a été envoyé par <strong style="color:#6b7280;">${params.companyName}</strong> via Pintalent.<br>
-                      Vous recevez cet email car votre profil correspond à nos opportunités.
-                    </p>
-                  </td>
-                </tr>
-              </table>
+              <p style="color:#9ca3af;font-size:12px;margin:0;line-height:1.6;">
+                Cet email a été envoyé par <strong style="color:#6b7280;">${params.companyName}</strong> via Pintalent.<br>
+                Vous recevez cet email car votre profil correspond à nos opportunités.
+              </p>
             </td>
           </tr>
 
@@ -183,13 +167,15 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
-      const jobCards = jobs.map(j => generateJobCard(j, baseUrl)).join('');
+      const primaryColor = getSetting('primary_color') || '#10b981';
+      const jobCards = jobs.map(j => generateJobCard(j, baseUrl, primaryColor)).join('');
       const html = generateEmailHtml({
         candidateName: candidate.name,
         intro,
         jobCards,
         companyName,
         fromEmail: getSetting('smtp_from_email'),
+        primaryColor,
       });
 
       const personalizedSubject = subject.replace('{{candidat.nom}}', candidate.name.split(' ')[0]);
