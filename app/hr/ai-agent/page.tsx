@@ -48,9 +48,14 @@ const ACTION_LABELS: Record<string, string> = {
 
 type LogFilter = 'all' | 'success' | 'error';
 
+interface EmailTemplate { id: string; name: string; }
+
+const STAGE_OPTIONS = ['Nouveau', 'Présélectionné', 'Entretien', 'Offre', 'Embauché', 'Rejeté'];
+
 export default function AIAgentPage() {
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
+  const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [logFilter, setLogFilter] = useState<LogFilter>('all');
   const [showForm, setShowForm] = useState(false);
@@ -58,19 +63,24 @@ export default function AIAgentPage() {
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
   const [form, setForm] = useState({
     name: '',
-    trigger_type: 'stage_change',
     trigger_value: 'Nouveau',
-    action_type: 'send_email',
+    action_type: 'send_email' as 'send_email' | 'webhook',
+    template_id: '',
+    webhook_url: '',
   });
 
   const fetchData = useCallback(async () => {
-    const [aRes, lRes] = await Promise.all([
+    const [aRes, lRes, tRes] = await Promise.all([
       fetch('/api/automations'),
       fetch('/api/automation-logs?limit=100'),
+      fetch('/api/email-templates'),
     ]);
-    const [a, l] = await Promise.all([aRes.json(), lRes.json()]);
+    const [a, l, t] = await Promise.all([aRes.json(), lRes.json(), tRes.json()]);
     setAutomations(Array.isArray(a) ? a : []);
     setLogs(Array.isArray(l) ? l : []);
+    const tmpl = Array.isArray(t) ? t : [];
+    setTemplates(tmpl);
+    if (tmpl.length > 0) setForm(p => ({ ...p, template_id: tmpl[0].id }));
     setLoading(false);
   }, []);
 
@@ -99,20 +109,33 @@ export default function AIAgentPage() {
 
   async function createAutomation(e: React.FormEvent) {
     e.preventDefault();
+    if (form.action_type === 'send_email' && !form.template_id) return;
+    if (form.action_type === 'webhook' && !form.webhook_url) return;
     setSaving(true);
+    const action_config = form.action_type === 'send_email'
+      ? { template_id: form.template_id }
+      : { url: form.webhook_url };
     const res = await fetch('/api/automations', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, action_config: {} }),
+      body: JSON.stringify({
+        name: form.name,
+        trigger_type: 'stage_change',
+        trigger_value: form.trigger_value,
+        action_type: form.action_type === 'send_email' ? 'send_email' : 'webhook',
+        action_config,
+      }),
     });
     if (res.ok) {
       const created = await res.json();
       setAutomations(prev => [...prev, created]);
       setShowForm(false);
-      setForm({ name: '', trigger_type: 'stage_change', trigger_value: 'Nouveau', action_type: 'send_email' });
+      setForm({ name: '', trigger_value: 'Nouveau', action_type: 'send_email', template_id: templates[0]?.id || '', webhook_url: '' });
     }
     setSaving(false);
   }
+
+  const selectedTemplate = templates.find(t => t.id === form.template_id);
 
   const filteredLogs = logs.filter(l =>
     logFilter === 'all' ? true :
@@ -358,51 +381,161 @@ export default function AIAgentPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-xl w-full max-w-md p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-5">Nouvel agent AI</h2>
-            <form onSubmit={createAutomation} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Nom de l&apos;agent</label>
-                <input type="text" required value={form.name}
-                  onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                  placeholder="Ex: Email de bienvenue automatique"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+
+            {/* Modal header */}
+            <div className="px-7 pt-6 pb-4 border-b border-gray-100">
+              <div className="flex items-start justify-between">
+                <div>
+                  <h2 className="text-lg font-bold text-gray-900">Nouvelle automatisation</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">Déclenchez une action automatique lors du changement d&apos;étape</p>
+                </div>
+                <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none mt-0.5">×</button>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Déclencheur</label>
-                <select value={form.trigger_type} onChange={e => setForm(p => ({ ...p, trigger_type: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                  <option value="stage_change">Changement d&apos;étape</option>
-                  <option value="new_application">Nouvelle candidature</option>
-                  <option value="tag_added">Tag ajouté</option>
-                </select>
+            </div>
+
+            <form onSubmit={createAutomation}>
+              <div className="flex divide-x divide-gray-100">
+
+                {/* Left — Configuration */}
+                <div className="flex-1 px-7 py-6 space-y-6">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Configuration</p>
+
+                  {/* Name */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la règle</label>
+                    <input type="text" required value={form.name}
+                      onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
+                      placeholder="Ex: Notif entretien n8n"
+                      className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent" />
+                  </div>
+
+                  {/* Trigger */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span className="text-yellow-500">⚡</span>
+                      <span className="text-sm font-semibold text-gray-800">Déclencheur</span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500 whitespace-nowrap">Changement vers</span>
+                      <select value={form.trigger_value}
+                        onChange={e => setForm(p => ({ ...p, trigger_value: e.target.value }))}
+                        className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                        {STAGE_OPTIONS.map(s => <option key={s}>{s}</option>)}
+                      </select>
+                    </div>
+                  </div>
+
+                  {/* Action type */}
+                  <div>
+                    <div className="flex items-center gap-2 mb-3">
+                      <span>🎯</span>
+                      <span className="text-sm font-semibold text-gray-800">Action</span>
+                    </div>
+                    <div className="flex gap-3 mb-4">
+                      <button type="button"
+                        onClick={() => setForm(p => ({ ...p, action_type: 'send_email' }))}
+                        className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                          form.action_type === 'send_email'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                            : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}>
+                        <span>📧</span> Envoyer un email
+                      </button>
+                      <button type="button"
+                        onClick={() => setForm(p => ({ ...p, action_type: 'webhook' }))}
+                        className={`flex-1 flex items-center gap-2 px-4 py-2.5 rounded-xl border-2 text-sm font-medium transition-all ${
+                          form.action_type === 'webhook'
+                            ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
+                            : 'border-gray-200 text-gray-500 hover:border-gray-300'
+                        }`}>
+                        <span>🔗</span> Webhook (n8n, Zapier…)
+                      </button>
+                    </div>
+
+                    {form.action_type === 'send_email' ? (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">Template email</label>
+                        <select value={form.template_id}
+                          onChange={e => setForm(p => ({ ...p, template_id: e.target.value }))}
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                          {templates.length === 0
+                            ? <option value="">Aucun template disponible</option>
+                            : templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
+                          }
+                        </select>
+                        <p className="text-xs text-emerald-600 mt-2">✓ L&apos;email sera envoyé à l&apos;adresse du candidat</p>
+                      </div>
+                    ) : (
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">URL du webhook</label>
+                        <input type="url" required={form.action_type === 'webhook'} value={form.webhook_url}
+                          onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))}
+                          placeholder="https://n8n.example.com/webhook/..."
+                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                        <p className="text-xs text-gray-400 mt-2">Une requête POST sera envoyée avec les données du candidat</p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                {/* Right — Résumé */}
+                <div className="w-56 px-6 py-6 bg-gray-50 flex flex-col gap-4">
+                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Résumé</p>
+
+                  <div className="space-y-3 text-sm">
+                    <div className="flex items-start gap-2">
+                      <span className="text-yellow-500 mt-0.5">⚡</span>
+                      <span className="text-gray-600">Étape : <strong className="text-gray-900">{form.trigger_value}</strong></span>
+                    </div>
+                    {form.action_type === 'send_email' ? (
+                      <>
+                        <div className="flex items-start gap-2">
+                          <span className="text-blue-500 mt-0.5">📧</span>
+                          <span className="text-gray-600">Template : <strong className="text-gray-900">{selectedTemplate?.name || '—'}</strong></span>
+                        </div>
+                        <div className="flex items-start gap-2">
+                          <span className="text-purple-500 mt-0.5">👤</span>
+                          <span className="text-gray-600">Destinataire : <strong className="text-gray-900">Email du candidat</strong></span>
+                        </div>
+                      </>
+                    ) : (
+                      <div className="flex items-start gap-2">
+                        <span className="mt-0.5">🔗</span>
+                        <span className="text-gray-600 break-all text-xs">{form.webhook_url || 'URL non définie'}</span>
+                      </div>
+                    )}
+                  </div>
+
+                  {form.action_type === 'send_email' && (
+                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mt-2">
+                      <p className="text-xs font-semibold text-blue-700 mb-2">Variables disponibles dans le template :</p>
+                      <div className="space-y-1">
+                        {['{{candidat.nom}}', '{{offre.titre}}', '{{pipeline.etape}}'].map(v => (
+                          <p key={v} className="text-xs font-mono text-blue-600">{v}</p>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Valeur déclencheur</label>
-                <input type="text" value={form.trigger_value}
-                  onChange={e => setForm(p => ({ ...p, trigger_value: e.target.value }))}
-                  placeholder="Ex: Nouveau, Entretien…"
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-violet-500" />
-              </div>
-              <div>
-                <label className="block text-xs font-semibold text-gray-600 mb-1.5">Action</label>
-                <select value={form.action_type} onChange={e => setForm(p => ({ ...p, action_type: e.target.value }))}
-                  className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-violet-500">
-                  <option value="send_email">Envoyer un email</option>
-                  <option value="webhook">Webhook</option>
-                  <option value="assign_tag">Assigner un tag</option>
-                  <option value="move_stage">Changer d&apos;étape</option>
-                </select>
-              </div>
-              <div className="flex gap-3 pt-2">
-                <button type="button" onClick={() => setShowForm(false)}
-                  className="flex-1 border border-gray-200 text-gray-600 py-2.5 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-                  Annuler
-                </button>
-                <button type="submit" disabled={saving}
-                  className="flex-1 bg-violet-600 text-white py-2.5 rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors disabled:opacity-60">
-                  {saving ? 'Création…' : 'Créer l\'agent'}
-                </button>
+
+              {/* Footer */}
+              <div className="px-7 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
+                <p className="text-xs text-gray-400">
+                  {!form.name ? 'Remplissez tous les champs requis' : ''}
+                </p>
+                <div className="flex gap-3">
+                  <button type="button" onClick={() => setShowForm(false)}
+                    className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
+                    Annuler
+                  </button>
+                  <button type="submit" disabled={saving || !form.name}
+                    className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50">
+                    <span>⚡</span>
+                    {saving ? 'Création…' : 'Créer l\'automatisation'}
+                  </button>
+                </div>
               </div>
             </form>
           </div>
