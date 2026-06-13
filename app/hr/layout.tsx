@@ -47,6 +47,9 @@ function IconPalette() {
 function IconTeam() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4.354a4 4 0 1 1 0 5.292"/><path d="M15 21H3v-1a6 6 0 0 1 12 0v1zm0 0h6v-1a6 6 0 0 0-9-5.197"/></svg>;
 }
+function IconRobot() {
+  return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="11" width="18" height="10" rx="2"/><circle cx="12" cy="5" r="2"/><path d="M12 7v4"/><line x1="8" y1="15" x2="8" y2="15"/><line x1="16" y1="15" x2="16" y2="15"/><circle cx="8" cy="15" r="1" fill="currentColor"/><circle cx="16" cy="15" r="1" fill="currentColor"/></svg>;
+}
 function IconSatellite() {
   return <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M6 16.326A7 7 0 1 1 15.71 12h1.79a4.5 4.5 0 0 1 .5 8.973"/><path d="m13 12-3 5h4l-3 5"/></svg>;
 }
@@ -75,6 +78,7 @@ const NAV_GROUPS = [
   {
     label: 'Analyse & Outils',
     items: [
+      { href: '/hr/ai-agent',     label: 'AI Agent',           icon: <IconRobot />,    countKey: '' },
       { href: '',                  label: 'Vivier de talents', icon: <IconStar />,     countKey: '', soon: true },
       { href: '/hr/job-boards',   label: 'Diffusion offres',  icon: <IconSatellite />,countKey: '' },
       { href: '/hr/prospecting',  label: 'Prospection email', icon: <IconMail />,     countKey: '' },
