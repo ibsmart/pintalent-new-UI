@@ -95,7 +95,7 @@ const NAV_GROUPS = [
 function Badge({ n }: { n: number }) {
   if (!n) return null;
   return (
-    <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-100 text-gray-500 group-hover:bg-gray-200 transition-colors">
+    <span className="ml-auto text-xs font-semibold px-2 py-0.5 rounded-full bg-gray-700 text-gray-300 group-hover:bg-gray-600 transition-colors">
       {n > 999 ? '999+' : n}
     </span>
   );
@@ -137,13 +137,13 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
   const SidebarContent = () => (
     <div className="flex flex-col h-full">
       {/* Logo */}
-      <div className="px-5 py-5 border-b border-gray-100">
+      <div className="px-5 py-5 border-b border-gray-800">
         <div className="flex items-center gap-3">
-          <div className="w-8 h-8 bg-indigo-600 rounded-lg flex items-center justify-center flex-shrink-0">
+          <div className="w-8 h-8 bg-emerald-700 rounded-lg flex items-center justify-center flex-shrink-0">
             <span className="text-white font-bold text-xs">GF</span>
           </div>
           <div>
-            <div className="font-bold text-sm text-gray-900">GEEKFACT</div>
+            <div className="font-bold text-sm text-white">GEEKFACT</div>
             <div className="text-gray-400 text-xs">CRM Recrutement</div>
           </div>
         </div>
@@ -153,7 +153,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
       <nav className="flex-1 overflow-y-auto px-3 py-4 space-y-5">
         {NAV_GROUPS.map(group => (
           <div key={group.label}>
-            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-gray-400">
+            <p className="px-3 mb-1.5 text-[11px] font-semibold uppercase tracking-widest text-gray-500">
               {group.label}
             </p>
             <div className="space-y-0.5">
@@ -166,11 +166,11 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
                     href={item.href}
                     className={`group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
                       active
-                        ? 'bg-indigo-50 text-indigo-700'
-                        : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
+                        ? 'bg-emerald-700 text-white'
+                        : 'text-gray-400 hover:text-white hover:bg-gray-800'
                     }`}
                   >
-                    <span className={`flex-shrink-0 transition-colors ${active ? 'text-indigo-600' : 'text-gray-400 group-hover:text-gray-600'}`}>
+                    <span className={`flex-shrink-0 transition-colors ${active ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
                       {item.icon}
                     </span>
                     <span className="flex-1 truncate">{item.label}</span>
@@ -184,26 +184,26 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
       </nav>
 
       {/* Footer */}
-      <div className="px-3 py-4 border-t border-gray-100 space-y-0.5">
-        <Link href="/" className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-all">
-          <span className="text-gray-400 group-hover:text-gray-600"><IconGlobe /></span>
+      <div className="px-3 py-4 border-t border-gray-800 space-y-0.5">
+        <Link href="/" className="group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-white hover:bg-gray-800 transition-all">
+          <span className="text-gray-500 group-hover:text-gray-300"><IconGlobe /></span>
           <span>Site public</span>
         </Link>
         {user && (
-          <div className="mt-2 pt-2 border-t border-gray-100">
+          <div className="mt-2 pt-2 border-t border-gray-800">
             <div className="flex items-center gap-3 px-3 py-2 mb-1">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0"
                 style={{ backgroundColor: user.avatar_color || '#6366f1' }}>
                 {user.name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-gray-900 text-xs font-semibold truncate">{user.name}</p>
-                <p className="text-gray-400 text-xs">{ROLE_LABELS[user.role] || user.role}</p>
+                <p className="text-white text-xs font-semibold truncate">{user.name}</p>
+                <p className="text-gray-500 text-xs">{ROLE_LABELS[user.role] || user.role}</p>
               </div>
             </div>
             <button onClick={logout}
-              className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-500 hover:text-red-600 hover:bg-red-50 transition-all">
-              <span className="text-gray-400 group-hover:text-red-500"><IconLogout /></span>
+              className="w-full group flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium text-gray-400 hover:text-red-400 hover:bg-gray-800 transition-all">
+              <span className="text-gray-500 group-hover:text-red-400"><IconLogout /></span>
               <span>Déconnexion</span>
             </button>
           </div>
@@ -216,7 +216,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
     <div className="min-h-screen bg-gray-50 flex">
 
       {/* Desktop sidebar */}
-      <aside className="hidden lg:flex w-64 bg-white border-r border-gray-200 flex-col fixed inset-y-0 left-0 z-50">
+      <aside className="hidden lg:flex w-64 bg-gray-900 flex-col fixed inset-y-0 left-0 z-50">
         <SidebarContent />
       </aside>
 
@@ -226,7 +226,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Mobile drawer */}
-      <aside className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-white border-r border-gray-200 flex flex-col transform transition-transform duration-300 ease-in-out shadow-xl ${
+      <aside className={`lg:hidden fixed inset-y-0 left-0 z-50 w-72 bg-gray-900 flex flex-col transform transition-transform duration-300 ease-in-out shadow-xl ${
         sidebarOpen ? 'translate-x-0' : '-translate-x-full'
       }`}>
         <button onClick={() => setSidebarOpen(false)}
