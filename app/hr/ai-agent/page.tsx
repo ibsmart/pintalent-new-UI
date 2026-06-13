@@ -61,12 +61,20 @@ export default function AIAgentPage() {
   const [showForm, setShowForm] = useState(false);
   const [saving, setSaving] = useState(false);
   const [expandedLog, setExpandedLog] = useState<string | null>(null);
+  const PAYLOAD_FIELDS = [
+    'event', 'stage', 'candidate_name', 'candidate_email',
+    'candidate_id', 'candidate_phone', 'job_title', 'application_id',
+    'cv_filename', 'cv_url', 'cv_text', 'cv_base64', 'cv_mimetype',
+  ];
+
   const [form, setForm] = useState({
     name: '',
     trigger_value: 'Nouveau',
     action_type: 'send_email' as 'send_email' | 'webhook',
     template_id: '',
     webhook_url: '',
+    webhook_method: 'POST',
+    payload_fields: PAYLOAD_FIELDS,
   });
 
   const fetchData = useCallback(async () => {
@@ -130,7 +138,7 @@ export default function AIAgentPage() {
       const created = await res.json();
       setAutomations(prev => [...prev, created]);
       setShowForm(false);
-      setForm({ name: '', trigger_value: 'Nouveau', action_type: 'send_email', template_id: templates[0]?.id || '', webhook_url: '' });
+      setForm({ name: '', trigger_value: 'Nouveau', action_type: 'send_email', template_id: templates[0]?.id || '', webhook_url: '', webhook_method: 'POST', payload_fields: PAYLOAD_FIELDS });
     }
     setSaving(false);
   }
@@ -467,29 +475,39 @@ export default function AIAgentPage() {
                         <p className="text-xs text-emerald-600 mt-2">✓ L&apos;email sera envoyé à l&apos;adresse du candidat</p>
                       </div>
                     ) : (
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">URL du webhook</label>
-                        <input type="url" required={form.action_type === 'webhook'} value={form.webhook_url}
-                          onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))}
-                          placeholder="https://n8n.example.com/webhook/..."
-                          className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
-                        <p className="text-xs text-gray-400 mt-2">Une requête POST sera envoyée avec les données du candidat</p>
+                      <div className="flex gap-3">
+                        <div className="flex-1">
+                          <label className="block text-sm font-medium text-gray-700 mb-2">URL du webhook</label>
+                          <input type="url" required={form.action_type === 'webhook'} value={form.webhook_url}
+                            onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))}
+                            placeholder="https://n8n.example.com/webhook/..."
+                            className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">Méthode</label>
+                          <select value={form.webhook_method}
+                            onChange={e => setForm(p => ({ ...p, webhook_method: e.target.value }))}
+                            className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
+                            <option>POST</option>
+                            <option>GET</option>
+                            <option>PUT</option>
+                          </select>
+                        </div>
                       </div>
                     )}
                   </div>
                 </div>
 
-                {/* Right — Résumé */}
-                <div className="w-56 px-6 py-6 bg-gray-50 flex flex-col gap-4">
-                  <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Résumé</p>
-
-                  <div className="space-y-3 text-sm">
-                    <div className="flex items-start gap-2">
-                      <span className="text-yellow-500 mt-0.5">⚡</span>
-                      <span className="text-gray-600">Étape : <strong className="text-gray-900">{form.trigger_value}</strong></span>
-                    </div>
-                    {form.action_type === 'send_email' ? (
-                      <>
+                {/* Right — Résumé (email) or Payload (webhook) */}
+                <div className="w-64 flex flex-col bg-gray-50">
+                  {form.action_type === 'send_email' ? (
+                    <div className="px-6 py-6 flex flex-col gap-4">
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Résumé</p>
+                      <div className="space-y-3 text-sm">
+                        <div className="flex items-start gap-2">
+                          <span className="text-yellow-500 mt-0.5">⚡</span>
+                          <span className="text-gray-600">Étape : <strong className="text-gray-900">{form.trigger_value}</strong></span>
+                        </div>
                         <div className="flex items-start gap-2">
                           <span className="text-blue-500 mt-0.5">📧</span>
                           <span className="text-gray-600">Template : <strong className="text-gray-900">{selectedTemplate?.name || '—'}</strong></span>
@@ -498,22 +516,72 @@ export default function AIAgentPage() {
                           <span className="text-purple-500 mt-0.5">👤</span>
                           <span className="text-gray-600">Destinataire : <strong className="text-gray-900">Email du candidat</strong></span>
                         </div>
-                      </>
-                    ) : (
-                      <div className="flex items-start gap-2">
-                        <span className="mt-0.5">🔗</span>
-                        <span className="text-gray-600 break-all text-xs">{form.webhook_url || 'URL non définie'}</span>
                       </div>
-                    )}
-                  </div>
-
-                  {form.action_type === 'send_email' && (
-                    <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 mt-2">
-                      <p className="text-xs font-semibold text-blue-700 mb-2">Variables disponibles dans le template :</p>
-                      <div className="space-y-1">
+                      <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
+                        <p className="text-xs font-semibold text-blue-700 mb-2">Variables disponibles dans le template :</p>
                         {['{{candidat.nom}}', '{{offre.titre}}', '{{pipeline.etape}}'].map(v => (
                           <p key={v} className="text-xs font-mono text-blue-600">{v}</p>
                         ))}
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="flex flex-col h-full">
+                      {/* Payload fields */}
+                      <div className="px-5 py-4 border-b border-gray-200">
+                        <div className="flex items-center justify-between mb-3">
+                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Payload envoyé</p>
+                          <div className="flex items-center gap-2 text-xs">
+                            <button type="button" onClick={() => setForm(p => ({ ...p, payload_fields: PAYLOAD_FIELDS }))}
+                              className="text-emerald-600 font-medium hover:underline">Tout</button>
+                            <span className="text-gray-300">|</span>
+                            <button type="button" onClick={() => setForm(p => ({ ...p, payload_fields: [] }))}
+                              className="text-gray-400 font-medium hover:underline">Aucun</button>
+                          </div>
+                        </div>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {PAYLOAD_FIELDS.map(field => {
+                            const checked = form.payload_fields.includes(field);
+                            return (
+                              <button key={field} type="button"
+                                onClick={() => setForm(p => ({
+                                  ...p,
+                                  payload_fields: checked
+                                    ? p.payload_fields.filter(f => f !== field)
+                                    : [...p.payload_fields, field],
+                                }))}
+                                className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg border text-xs font-mono transition-all ${
+                                  checked
+                                    ? 'bg-emerald-50 border-emerald-300 text-emerald-700'
+                                    : 'bg-white border-gray-200 text-gray-400'
+                                }`}>
+                                <span className={`w-3.5 h-3.5 rounded flex items-center justify-center flex-shrink-0 ${checked ? 'bg-emerald-500' : 'bg-gray-200'}`}>
+                                  {checked && <span className="text-white text-[9px] font-bold">✓</span>}
+                                </span>
+                                {field}
+                              </button>
+                            );
+                          })}
+                        </div>
+                      </div>
+                      {/* JSON preview */}
+                      <div className="flex-1 overflow-auto">
+                        <p className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-800 text-gray-300">Aperçu JSON</p>
+                        <pre className="bg-gray-900 text-emerald-400 text-[10px] font-mono px-4 py-3 overflow-auto leading-relaxed h-48">
+{`{
+${form.payload_fields.map(f => {
+  const examples: Record<string,string> = {
+    event: 'stage_change', stage: form.trigger_value,
+    candidate_name: '<Nom candidat>', candidate_email: '<Email candidat>',
+    candidate_id: '<ID candidat>', candidate_phone: '<Téléphone>',
+    job_title: '<Titre de l\'offre>', application_id: '<ID candidature>',
+    cv_filename: '<Nom du fichier CV>', cv_url: '<URL de téléchargement PDF>',
+    cv_text: '<Contenu texte du CV>', cv_base64: '<CV encodé base64>',
+    cv_mimetype: 'application/pdf',
+  };
+  return `  "${f}": "${examples[f] || ''}"`;
+}).join(',\n')}
+}`}
+                        </pre>
                       </div>
                     </div>
                   )}
