@@ -182,7 +182,7 @@ export default function AIAgentPage() {
           <p className="text-gray-500 text-sm mt-0.5">Automatisez vos workflows de recrutement</p>
         </div>
         <button onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 bg-violet-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors shadow-sm">
+          className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
           + Nouvel agent
         </button>
       </div>
@@ -199,7 +199,7 @@ export default function AIAgentPage() {
             <p className="text-gray-500 font-medium">Aucun agent configuré</p>
             <p className="text-gray-400 text-sm mt-1">Créez votre premier agent pour automatiser vos workflows</p>
             <button onClick={() => setShowForm(true)}
-              className="mt-4 bg-violet-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-violet-700 transition-colors">
+              className="mt-4 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
               Créer un agent
             </button>
           </div>
@@ -241,7 +241,7 @@ export default function AIAgentPage() {
                     <td className="px-5 py-4">
                       <button
                         onClick={() => toggleActive(auto.id, auto.active)}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${auto.active ? 'bg-violet-500' : 'bg-gray-200'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${auto.active ? 'bg-emerald-500' : 'bg-gray-200'}`}
                       >
                         <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${auto.active ? 'translate-x-6' : 'translate-x-1'}`} />
                       </button>
