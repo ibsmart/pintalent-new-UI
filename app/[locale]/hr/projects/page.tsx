@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface Project {
   id: string;
@@ -22,12 +23,6 @@ interface Project {
   stage_refused: number;
 }
 
-const STATUS_LABELS: Record<string, { label: string; color: string }> = {
-  active:   { label: 'Actif',    color: 'bg-green-100 text-green-800 border-green-200' },
-  on_hold:  { label: 'En pause', color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
-  closed:   { label: 'Clôturé', color: 'bg-gray-100 text-gray-600 border-gray-200' },
-};
-
 const PRIORITY_COLORS: Record<string, string> = {
   low:    'bg-gray-100 text-gray-600',
   normal: 'bg-blue-100 text-blue-700',
@@ -39,12 +34,19 @@ type NewProject = { name: string; client: string; description: string; status: s
 const EMPTY: NewProject = { name: '', client: '', description: '', status: 'active' };
 
 export default function ProjectsPage() {
+  const t = useTranslations('projects');
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
   const [form, setForm] = useState<NewProject>(EMPTY);
   const [saving, setSaving] = useState(false);
   const [filter, setFilter] = useState('');
+
+  const STATUS_LABELS: Record<string, { label: string; color: string }> = {
+    active:   { label: t('statusActive'),  color: 'bg-green-100 text-green-800 border-green-200' },
+    on_hold:  { label: t('statusPaused'),  color: 'bg-yellow-100 text-yellow-800 border-yellow-200' },
+    closed:   { label: t('statusClosed'),  color: 'bg-gray-100 text-gray-600 border-gray-200' },
+  };
 
   async function load() {
     const data = await fetch('/api/projects').then(r => r.json());
@@ -84,22 +86,22 @@ export default function ProjectsPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Campagnes de recrutement</h1>
-          <p className="text-gray-500 text-sm mt-1">Gérez vos missions et postes à pourvoir par campagne</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <button onClick={() => setShowModal(true)}
           className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-          + Nouvelle campagne
+          {t('add')}
         </button>
       </div>
 
       {/* Stats globales */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         {[
-          { label: 'Campagnes total', value: stats.total, icon: '📁' },
-          { label: 'Campagnes actives', value: stats.active, icon: '🟢' },
-          { label: 'Candidatures reçues', value: stats.candidates, icon: '👥' },
-          { label: 'Embauches réalisées', value: stats.hired, icon: '🎉' },
+          { label: t('statTotal'),        value: stats.total,      icon: '📁' },
+          { label: t('statActive'),       value: stats.active,     icon: '🟢' },
+          { label: t('statApplications'), value: stats.candidates, icon: '👥' },
+          { label: t('statHires'),        value: stats.hired,      icon: '🎉' },
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-5 flex items-center gap-4">
             <span className="text-2xl">{s.icon}</span>
@@ -113,9 +115,9 @@ export default function ProjectsPage() {
 
       {/* Search */}
       <div className="flex items-center gap-3">
-        <input type="text" placeholder="Rechercher une campagne ou client…" value={filter} onChange={e => setFilter(e.target.value)}
+        <input type="text" placeholder={t('searchPlaceholder')} value={filter} onChange={e => setFilter(e.target.value)}
           className="border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 w-72" />
-        <span className="text-sm text-gray-400">{filtered.length} campagne{filtered.length > 1 ? 's' : ''}</span>
+        <span className="text-sm text-gray-400">{filtered.length} {filtered.length > 1 ? t('campaignCountPlural') : t('campaignCount')}</span>
       </div>
 
       {/* Grille projets */}
@@ -126,10 +128,10 @@ export default function ProjectsPage() {
       ) : filtered.length === 0 ? (
         <div className="text-center py-20 bg-white rounded-2xl border border-gray-100">
           <div className="text-5xl mb-4">📁</div>
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Aucune campagne</h3>
-          <p className="text-gray-500 text-sm mb-6">Créez votre première campagne de recrutement</p>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">{t('noCampaigns')}</h3>
+          <p className="text-gray-500 text-sm mb-6">{t('noCampaignsCreate')}</p>
           <button onClick={() => setShowModal(true)} className="bg-emerald-700 text-white px-6 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-800 transition-colors">
-            + Nouvelle campagne
+            {t('add')}
           </button>
         </div>
       ) : (
@@ -160,15 +162,15 @@ export default function ProjectsPage() {
                 <div className="grid grid-cols-3 gap-3 mb-4">
                   <div className="text-center">
                     <div className="text-xl font-bold text-gray-900">{project.request_count || 0}</div>
-                    <div className="text-xs text-gray-400">postes</div>
+                    <div className="text-xs text-gray-400">{t('jobs')}</div>
                   </div>
                   <div className="text-center border-x border-gray-100">
                     <div className="text-xl font-bold text-gray-900">{project.candidate_count || 0}</div>
-                    <div className="text-xs text-gray-400">candidats</div>
+                    <div className="text-xs text-gray-400">{t('candidates')}</div>
                   </div>
                   <div className="text-center">
                     <div className="text-xl font-bold text-green-600">{project.hired_count || 0}</div>
-                    <div className="text-xs text-gray-400">embauchés</div>
+                    <div className="text-xs text-gray-400">{t('hired')}</div>
                   </div>
                 </div>
 
@@ -199,7 +201,7 @@ export default function ProjectsPage() {
                 {project.total_positions > 0 && (
                   <div>
                     <div className="flex justify-between text-xs text-gray-500 mb-1">
-                      <span>Taux de remplissage</span>
+                      <span>{t('fillRate')}</span>
                       <span className="font-medium">{fillRate}%</span>
                     </div>
                     <div className="w-full bg-gray-100 rounded-full h-1.5">
@@ -210,7 +212,7 @@ export default function ProjectsPage() {
                 )}
 
                 <div className="mt-4 pt-3 border-t border-gray-50 text-xs text-gray-400">
-                  Créé le {new Date(project.created_at).toLocaleDateString('fr-FR')}
+                  {t('createdAt')} {new Date(project.created_at).toLocaleDateString('fr-FR')}
                 </div>
               </Link>
             );
@@ -222,34 +224,34 @@ export default function ProjectsPage() {
       {showModal && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm flex items-center justify-center z-50 p-4" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-5">Nouvelle campagne de recrutement</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-5">{t('newCampaign')}</h2>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom de la campagne *</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('formTitle')} *</label>
                 <input type="text" value={form.name} onChange={e => setForm(f => ({...f, name: e.target.value}))}
                   placeholder="Ex: Renforcement équipe Data" autoFocus
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Client / Donneur d'ordre</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('formClient')}</label>
                 <input type="text" value={form.client} onChange={e => setForm(f => ({...f, client: e.target.value}))}
                   placeholder="Ex: Direction Data & BI"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Description</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('formDesc')}</label>
                 <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))}
                   rows={3} placeholder="Contexte, objectifs…"
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('formStatus')}</label>
                 <select value={form.status} onChange={e => setForm(f => ({...f, status: e.target.value}))}
                   className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                  <option value="active">Actif</option>
-                  <option value="on_hold">En pause</option>
-                  <option value="closed">Clôturé</option>
+                  <option value="active">{t('statusActive')}</option>
+                  <option value="on_hold">{t('statusPaused')}</option>
+                  <option value="closed">{t('statusClosed')}</option>
                 </select>
               </div>
             </div>
@@ -257,11 +259,11 @@ export default function ProjectsPage() {
             <div className="flex gap-3 mt-6">
               <button onClick={createProject} disabled={!form.name.trim() || saving}
                 className="flex-1 bg-emerald-700 hover:bg-emerald-800 text-white py-2.5 rounded-xl text-sm font-semibold disabled:opacity-50 transition-colors">
-                {saving ? 'Création…' : 'Créer la campagne'}
+                {saving ? '…' : t('formCreate')}
               </button>
               <button onClick={() => { setShowModal(false); setForm(EMPTY); }}
                 className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50 transition-colors">
-                Annuler
+                {t('formCancel')}
               </button>
             </div>
           </div>

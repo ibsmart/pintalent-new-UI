@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import Link from 'next/link';
+import { useTranslations } from 'next-intl';
 
 interface DashboardData {
   totalJobs: number;
@@ -22,12 +23,6 @@ const STAGE_COLORS: Record<string, string> = {
   'Rejeté': 'bg-emerald-100 text-emerald-800',
 };
 
-const RECO_COLORS: Record<string, string> = {
-  'À retenir': 'text-green-600 bg-green-50',
-  'À évaluer': 'text-yellow-600 bg-yellow-50',
-  'À écarter': 'text-emerald-600 bg-emerald-50',
-};
-
 function ScoreBadge({ score }: { score: number }) {
   const color = score >= 75 ? 'bg-green-500' : score >= 45 ? 'bg-yellow-500' : 'bg-emerald-500';
   return (
@@ -41,6 +36,8 @@ function ScoreBadge({ score }: { score: number }) {
 }
 
 export default function DashboardPage() {
+  const t = useTranslations('dashboard');
+  const tStages = useTranslations('stages');
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -60,12 +57,22 @@ export default function DashboardPage() {
 
   const stageMap = Object.fromEntries(data.byStage.map(s => [s.pipeline_stage, s.count]));
 
+  const stageLabels: Record<string, string> = {
+    'Nouveau': tStages('Nouveau'),
+    'Présélectionné': tStages('Présélectionné'),
+    'Entretien': tStages('Entretien'),
+    'Test technique': tStages('Test technique'),
+    'Offre': tStages('Offre'),
+    'Embauché': tStages('Embauché'),
+    'Rejeté': tStages('Rejeté'),
+  };
+
   return (
     <div className="p-8 space-y-8">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Tableau de bord</h1>
-          <p className="text-gray-500 text-sm mt-1">Vue d&apos;ensemble du recrutement GEEKFACT</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <div className="text-sm text-gray-400">{new Date().toLocaleDateString('fr-FR', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}</div>
       </div>
@@ -73,10 +80,10 @@ export default function DashboardPage() {
       {/* KPIs */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
         {[
-          { label: 'Postes actifs', value: data.totalJobs, icon: '📋', color: 'bg-blue-50 border-blue-100', iconBg: 'bg-blue-100' },
-          { label: 'Candidatures', value: data.totalApplications, icon: '👥', color: 'bg-green-50 border-green-100', iconBg: 'bg-green-100' },
-          { label: 'Score moyen', value: `${data.avgScore}/100`, icon: '⭐', color: 'bg-yellow-50 border-yellow-100', iconBg: 'bg-yellow-100' },
-          { label: 'À retenir', value: stageMap['Embauché'] || 0, icon: '✅', color: 'bg-purple-50 border-purple-100', iconBg: 'bg-purple-100' },
+          { label: t('activeJobs'), value: data.totalJobs, icon: '📋', color: 'bg-blue-50 border-blue-100', iconBg: 'bg-blue-100' },
+          { label: t('applications'), value: data.totalApplications, icon: '👥', color: 'bg-green-50 border-green-100', iconBg: 'bg-green-100' },
+          { label: t('avgScore'), value: `${data.avgScore}/100`, icon: '⭐', color: 'bg-yellow-50 border-yellow-100', iconBg: 'bg-yellow-100' },
+          { label: t('toKeep'), value: stageMap['Embauché'] || 0, icon: '✅', color: 'bg-purple-50 border-purple-100', iconBg: 'bg-purple-100' },
         ].map(kpi => (
           <div key={kpi.label} className={`${kpi.color} border rounded-2xl p-6 flex items-center gap-4`}>
             <div className={`w-12 h-12 ${kpi.iconBg} rounded-xl flex items-center justify-center text-2xl`}>{kpi.icon}</div>
@@ -90,13 +97,13 @@ export default function DashboardPage() {
 
       {/* Pipeline overview */}
       <div className="bg-white rounded-2xl border border-gray-100 p-6">
-        <h2 className="text-lg font-semibold text-gray-900 mb-5">Répartition du pipeline</h2>
+        <h2 className="text-lg font-semibold text-gray-900 mb-5">{t('pipelineOverview')}</h2>
         <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-7 gap-3">
           {['Nouveau', 'Présélectionné', 'Entretien', 'Test technique', 'Offre', 'Embauché', 'Rejeté'].map(stage => (
             <Link key={stage} href={`/hr/pipeline?stage=${encodeURIComponent(stage)}`}
               className="text-center p-4 bg-gray-50 rounded-xl hover:bg-gray-100 transition-colors cursor-pointer">
               <div className="text-2xl font-bold text-gray-900">{stageMap[stage] || 0}</div>
-              <div className="text-xs text-gray-500 mt-1 leading-tight">{stage}</div>
+              <div className="text-xs text-gray-500 mt-1 leading-tight">{stageLabels[stage] ?? stage}</div>
             </Link>
           ))}
         </div>
@@ -106,8 +113,8 @@ export default function DashboardPage() {
         {/* By job */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-gray-900">Candidatures par poste</h2>
-            <Link href="/hr/jobs" className="text-sm text-emerald-600 hover:underline">Gérer →</Link>
+            <h2 className="text-lg font-semibold text-gray-900">{t('byJob')}</h2>
+            <Link href="/hr/jobs" className="text-sm text-emerald-600 hover:underline">{t('manage')}</Link>
           </div>
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {data.byJob.slice(0, 10).map(job => (
@@ -120,12 +127,12 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-3 ml-4 flex-shrink-0">
                   <div className="text-center">
                     <div className="text-lg font-bold text-gray-900">{job.count}</div>
-                    <div className="text-xs text-gray-400">candidats</div>
+                    <div className="text-xs text-gray-400">{t('candidates')}</div>
                   </div>
                   {job.count > 0 && (
                     <div className="text-center">
                       <div className="text-sm font-semibold text-gray-600">{Math.round(job.avg_score || 0)}</div>
-                      <div className="text-xs text-gray-400">score moy.</div>
+                      <div className="text-xs text-gray-400">{t('avgScoreShort')}</div>
                     </div>
                   )}
                 </div>
@@ -137,12 +144,12 @@ export default function DashboardPage() {
         {/* Recent */}
         <div className="bg-white rounded-2xl border border-gray-100 p-6">
           <div className="flex items-center justify-between mb-5">
-            <h2 className="text-lg font-semibold text-gray-900">Candidatures récentes</h2>
-            <Link href="/hr/candidates" className="text-sm text-emerald-600 hover:underline">Voir tout →</Link>
+            <h2 className="text-lg font-semibold text-gray-900">{t('recentApplications')}</h2>
+            <Link href="/hr/candidates" className="text-sm text-emerald-600 hover:underline">{t('seeAll')}</Link>
           </div>
           <div className="space-y-3 max-h-80 overflow-y-auto">
             {data.recent.length === 0 ? (
-              <div className="text-center text-gray-400 py-8 text-sm">Aucune candidature reçue</div>
+              <div className="text-center text-gray-400 py-8 text-sm">{t('noApplications')}</div>
             ) : data.recent.map(app => (
               <Link key={app.id} href={`/hr/candidates/${app.id}`}
                 className="flex items-center gap-3 p-3 rounded-xl hover:bg-gray-50 transition-colors group">
@@ -156,7 +163,7 @@ export default function DashboardPage() {
                 <div className="flex flex-col items-end gap-1 flex-shrink-0">
                   <ScoreBadge score={app.score} />
                   <span className={`text-xs px-2 py-0.5 rounded-full ${STAGE_COLORS[app.pipeline_stage] || 'bg-gray-100 text-gray-600'}`}>
-                    {app.pipeline_stage}
+                    {stageLabels[app.pipeline_stage] ?? app.pipeline_stage}
                   </span>
                 </div>
               </Link>

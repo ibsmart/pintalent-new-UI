@@ -65,13 +65,14 @@ export async function POST(req: NextRequest) {
   const id = uuidv4();
 
   db.prepare(`
-    INSERT INTO jobs (id, title, department, location, contract_type, description, missions, profile, keywords, experience, education, status, campaign_id)
-    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+    INSERT INTO jobs (id, title, department, location, contract_type, description, missions, profile, keywords, experience, education, status, campaign_id, created_by)
+    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
   `).run(
     id, body.title, body.department || 'IT', body.location || 'Casablanca',
     body.contract_type || 'CDI', body.description || '', body.missions || '',
     body.profile || '', body.keywords || '', body.experience || '',
-    body.education || '', body.status || 'active', body.campaign_id || null
+    body.education || '', body.status || 'active', body.campaign_id || null,
+    session.id
   );
 
   const job = db.prepare('SELECT * FROM jobs WHERE id = ?').get(id);

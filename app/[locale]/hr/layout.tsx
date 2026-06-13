@@ -221,7 +221,8 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-white text-xs font-semibold truncate">{user.name}</p>
-                <p className="text-gray-500 text-xs">{ROLE_LABELS[user.role] || user.role}</p>
+                <p className="text-gray-400 text-xs truncate">{user.email}</p>
+                <p className="text-gray-600 text-xs">{ROLE_LABELS[user.role] || user.role}</p>
               </div>
             </div>
             <button onClick={logout}

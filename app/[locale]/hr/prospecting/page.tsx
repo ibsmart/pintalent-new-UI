@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useMemo } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Candidate {
   id: string;
@@ -59,12 +60,7 @@ const STAGE_STYLES: Record<string, { bg: string; text: string; dot: string }> = 
   'Rejeté':         { bg: 'bg-red-100', text: 'text-red-600', dot: 'bg-red-400' },
 };
 
-const FILTER_OPTIONS = [
-  { value: 'all',        label: 'Tous' },
-  { value: 'none',       label: 'Sans contact' },
-  { value: 'active',     label: 'En cours' },
-  { value: 'Rejeté',     label: 'Rejetés' },
-];
+// FILTER_OPTIONS defined inside component to support translations
 
 function StageBadge({ stage }: { stage: string }) {
   const s = STAGE_STYLES[stage] || { bg: 'bg-gray-100', text: 'text-gray-600', dot: 'bg-gray-400' };
@@ -77,6 +73,15 @@ function StageBadge({ stage }: { stage: string }) {
 }
 
 export default function ProspectingPage() {
+  const t = useTranslations('prospecting');
+
+  const FILTER_OPTIONS = [
+    { value: 'all',    label: t('filterAll') },
+    { value: 'none',   label: t('filterNone') },
+    { value: 'active', label: t('filterActive') },
+    { value: 'Rejeté', label: t('filterRejected') },
+  ];
+
   const [candidates, setCandidates] = useState<Candidate[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [applications, setApplications] = useState<AppEntry[]>([]);
@@ -272,8 +277,8 @@ export default function ProspectingPage() {
             <span className="text-lg">✉️</span>
           </div>
           <div>
-            <h1 className="text-base font-bold text-gray-900">Prospection</h1>
-            <p className="text-xs text-gray-500">Envoyez des offres ciblées à vos candidats</p>
+            <h1 className="text-base font-bold text-gray-900">{t('title')}</h1>
+            <p className="text-xs text-gray-500">{t('subtitle')}</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
@@ -291,7 +296,7 @@ export default function ProspectingPage() {
             disabled={!selectedJobs.size || !intro.trim()}
             className="px-4 py-2 text-sm font-medium text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 disabled:opacity-40 transition-colors"
           >
-            👁 Aperçu email
+            👁 {t('emailPreview')}
           </button>
           <button
             onClick={handleSend}
@@ -299,9 +304,9 @@ export default function ProspectingPage() {
             className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-sm font-semibold rounded-xl disabled:opacity-40 transition-colors flex items-center gap-2 shadow-sm"
           >
             {sending ? (
-              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> Envoi…</>
+              <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" /> {t('sending')}</>
             ) : (
-              <>📤 Envoyer {selectedCandidates.size > 0 ? `(${selectedCandidates.size})` : ''}</>
+              <>📤 {t('send')} {selectedCandidates.size > 0 ? `(${selectedCandidates.size})` : ''}</>
             )}
           </button>
         </div>
@@ -334,15 +339,15 @@ export default function ProspectingPage() {
             {/* Header + search */}
             <div className="px-5 py-4 border-b border-gray-50 space-y-3">
               <div className="flex items-center justify-between">
-                <h2 className="text-sm font-bold text-gray-900">Candidats
-                  <span className="ml-2 text-xs font-normal text-gray-400">{filteredCandidates.length} résultats</span>
+                <h2 className="text-sm font-bold text-gray-900">{t('candidatesTitle')}
+                  <span className="ml-2 text-xs font-normal text-gray-400">{filteredCandidates.length} {t('results')}</span>
                 </h2>
                 <div className="flex items-center gap-2">
                   {selectedCandidates.size > 0 && (
-                    <button onClick={clearCandidates} className="text-xs text-gray-400 hover:text-gray-600">Effacer</button>
+                    <button onClick={clearCandidates} className="text-xs text-gray-400 hover:text-gray-600">{t('clearSelection')}</button>
                   )}
                   <button onClick={selectAllFiltered} className="text-xs text-emerald-600 font-medium hover:text-emerald-700">
-                    Tout sélectionner
+                    {t('selectAll')}
                   </button>
                 </div>
               </div>
@@ -353,14 +358,14 @@ export default function ProspectingPage() {
                 <input
                   value={search}
                   onChange={e => setSearch(e.target.value)}
-                  placeholder="Nom, email, poste…"
+                  placeholder={t('searchPlaceholder')}
                   className="w-full pl-8 pr-3 py-2 text-sm border border-gray-200 rounded-xl bg-gray-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:border-transparent"
                 />
               </div>
 
               {/* Stage filters */}
               <div>
-                <p className="text-xs text-gray-400 font-medium mb-1.5">Filtrer par statut pipeline</p>
+                <p className="text-xs text-gray-400 font-medium mb-1.5">{t('filterByPipeline')}</p>
                 <div className="flex flex-wrap gap-1.5">
                   {FILTER_OPTIONS.map(opt => (
                     <button
@@ -381,8 +386,8 @@ export default function ProspectingPage() {
               {/* Auto-exclude toggle */}
               <div className="flex items-center justify-between py-2 px-3 bg-amber-50 rounded-xl border border-amber-100">
                 <div>
-                  <p className="text-xs font-semibold text-amber-800">Exclure automatiquement</p>
-                  <p className="text-xs text-amber-600">Ignore les candidats déjà en cours sur les offres sélectionnées</p>
+                  <p className="text-xs font-semibold text-amber-800">{t('excludeAuto')}</p>
+                  <p className="text-xs text-amber-600">{t('excludeDesc')}</p>
                 </div>
                 <div
                   onClick={() => setAutoExclude(!autoExclude)}
@@ -438,7 +443,7 @@ export default function ProspectingPage() {
                         <div className="flex items-center gap-2">
                           <p className="text-sm font-semibold text-gray-900 truncate">{c.name}</p>
                           {isAlreadyActive && (
-                            <span className="text-xs text-amber-600 flex-shrink-0">⚠️ En cours</span>
+                            <span className="text-xs text-amber-600 flex-shrink-0">⚠️ {t('alreadyInProgress')}</span>
                           )}
                         </div>
                         <div className="flex items-center gap-2">
@@ -452,7 +457,7 @@ export default function ProspectingPage() {
                         {hasEmail ? (
                           <p className="text-xs text-gray-400 truncate">{c.email}</p>
                         ) : (
-                          <p className="text-xs text-red-400">Pas d'email</p>
+                          <p className="text-xs text-red-400">{t('noEmail')}</p>
                         )}
 
                         {/* Pipeline status for selected jobs */}
@@ -498,7 +503,7 @@ export default function ProspectingPage() {
           {/* Jobs selection */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="px-5 py-4 border-b border-gray-50 flex items-center justify-between">
-              <h2 className="text-sm font-bold text-gray-900">Offres à proposer</h2>
+              <h2 className="text-sm font-bold text-gray-900">{t('offersTitle')}</h2>
               {selectedJobs.size > 0 && (
                 <span className="text-xs bg-emerald-100 text-emerald-700 font-semibold px-2.5 py-1 rounded-full">
                   {selectedJobs.size} sélectionnée{selectedJobs.size > 1 ? 's' : ''}
@@ -507,7 +512,7 @@ export default function ProspectingPage() {
             </div>
             <div className="p-4">
               {jobs.length === 0 ? (
-                <p className="text-sm text-gray-400 text-center py-4">Aucune offre active</p>
+                <p className="text-sm text-gray-400 text-center py-4">{t('noActiveOffers')}</p>
               ) : (
                 <div className="grid grid-cols-2 gap-3">
                   {jobs.map(job => {
@@ -555,12 +560,12 @@ export default function ProspectingPage() {
           {/* Email compose */}
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm">
             <div className="px-5 py-4 border-b border-gray-50">
-              <h2 className="text-sm font-bold text-gray-900">Composer l'email</h2>
+              <h2 className="text-sm font-bold text-gray-900">{t('composeEmail')}</h2>
               <p className="text-xs text-gray-500 mt-0.5">Utilisez <code className="bg-gray-100 px-1 rounded">{'{{candidat.nom}}'}</code> pour personnaliser</p>
             </div>
             <div className="p-5 space-y-4">
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Objet</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">{t('emailSubject')}</label>
                 <input
                   value={subject}
                   onChange={e => setSubject(e.target.value)}
@@ -568,7 +573,7 @@ export default function ProspectingPage() {
                 />
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">Message d'introduction</label>
+                <label className="block text-xs font-semibold text-gray-600 uppercase tracking-wide mb-1.5">{t('emailBody')}</label>
                 <textarea
                   value={intro}
                   onChange={e => setIntro(e.target.value)}
@@ -583,19 +588,19 @@ export default function ProspectingPage() {
           {/* Summary before send */}
           {selectedJobsList.length > 0 && selectedCandidates.size > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
-              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Récapitulatif avant envoi</p>
+              <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('summaryTitle')}</p>
               <div className="grid grid-cols-3 gap-3 mb-3">
                 <div className="p-3 bg-emerald-50 rounded-xl text-center">
                   <p className="text-2xl font-bold text-emerald-600">{selectedCandidates.size}</p>
-                  <p className="text-xs text-gray-500">destinataire{selectedCandidates.size > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-gray-500">{t('summaryRecipients')}</p>
                 </div>
                 <div className="p-3 bg-blue-50 rounded-xl text-center">
                   <p className="text-2xl font-bold text-blue-600">{selectedJobs.size}</p>
-                  <p className="text-xs text-gray-500">offre{selectedJobs.size > 1 ? 's' : ''} incluse{selectedJobs.size > 1 ? 's' : ''}</p>
+                  <p className="text-xs text-gray-500">{t('summaryOffers')}</p>
                 </div>
                 <div className={`p-3 rounded-xl text-center ${alreadyInPipelineCount > 0 ? 'bg-amber-50' : 'bg-gray-50'}`}>
                   <p className={`text-2xl font-bold ${alreadyInPipelineCount > 0 ? 'text-amber-600' : 'text-gray-400'}`}>{alreadyInPipelineCount}</p>
-                  <p className="text-xs text-gray-500">déjà en pipeline</p>
+                  <p className="text-xs text-gray-500">{t('summaryAlreadyPipeline')}</p>
                 </div>
               </div>
               {alreadyInPipelineCount > 0 && (
@@ -622,7 +627,7 @@ export default function ProspectingPage() {
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] flex flex-col">
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Aperçu de l'email</h3>
+              <h3 className="font-bold text-gray-900">{t('previewTitle')}</h3>
               <button onClick={() => setShowPreview(false)} className="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 text-gray-500">✕</button>
             </div>
             <div className="flex-1 overflow-auto p-4">

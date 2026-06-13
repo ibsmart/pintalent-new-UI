@@ -1,6 +1,7 @@
 'use client';
 
 import { useState, useEffect, useCallback, Fragment } from 'react';
+import { useTranslations } from 'next-intl';
 
 interface Automation {
   id: string;
@@ -53,6 +54,7 @@ interface EmailTemplate { id: string; name: string; }
 const STAGE_OPTIONS = ['Nouveau', 'Présélectionné', 'Entretien', 'Offre', 'Embauché', 'Rejeté'];
 
 export default function AIAgentPage() {
+  const t = useTranslations('aiAgent');
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [logs, setLogs] = useState<Log[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
@@ -104,13 +106,13 @@ export default function AIAgentPage() {
   }
 
   async function deleteAutomation(id: string) {
-    if (!confirm('Supprimer cet agent ?')) return;
+    if (!confirm(t('deleteConfirm'))) return;
     await fetch(`/api/automations/${id}`, { method: 'DELETE' });
     setAutomations(prev => prev.filter(a => a.id !== id));
   }
 
   async function clearLogs() {
-    if (!confirm('Effacer tous les logs ?')) return;
+    if (!confirm(t('logClearAllConfirm'))) return;
     await fetch('/api/automation-logs', { method: 'DELETE' });
     setLogs([]);
   }
@@ -178,12 +180,12 @@ export default function AIAgentPage() {
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">AI Agent</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Automatisez vos workflows de recrutement</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-0.5">{t('subtitle')}</p>
         </div>
         <button onClick={() => setShowForm(true)}
           className="flex items-center gap-2 bg-emerald-600 text-white px-4 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
-          + Nouvel agent
+          {t('add')}
         </button>
       </div>
 
@@ -196,18 +198,18 @@ export default function AIAgentPage() {
         ) : automations.length === 0 ? (
           <div className="p-16 text-center">
             <p className="text-4xl mb-3">🤖</p>
-            <p className="text-gray-500 font-medium">Aucun agent configuré</p>
-            <p className="text-gray-400 text-sm mt-1">Créez votre premier agent pour automatiser vos workflows</p>
+            <p className="text-gray-500 font-medium">{t('noAgents')}</p>
+            <p className="text-gray-400 text-sm mt-1">{t('noAgentsDesc')}</p>
             <button onClick={() => setShowForm(true)}
               className="mt-4 bg-emerald-600 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-700 transition-colors">
-              Créer un agent
+              {t('createAgentBtn')}
             </button>
           </div>
         ) : (
           <table className="w-full text-sm">
             <thead className="border-b border-gray-100">
               <tr>
-                {['Nom', 'Déclencheur', 'Action', 'Détail', 'Actif', ''].map(h => (
+                {[t('colName'), t('colTrigger'), t('colAction'), t('colDetail'), t('colActive'), ''].map(h => (
                   <th key={h} className="px-5 py-3.5 text-left text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                 ))}
               </tr>
@@ -249,7 +251,7 @@ export default function AIAgentPage() {
                     <td className="px-5 py-4 text-right">
                       <button onClick={() => deleteAutomation(auto.id)}
                         className="text-sm text-red-500 hover:text-red-700 font-medium transition-colors">
-                        Supprimer
+                        {t('deleteBtn')}
                       </button>
                     </td>
                   </tr>
@@ -266,22 +268,22 @@ export default function AIAgentPage() {
         <div className="grid grid-cols-3 gap-4 mb-6">
           <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-5">
             <p className="text-3xl font-bold text-gray-900">{logs.length}</p>
-            <p className="text-sm text-gray-400 mt-1">Total exécutions</p>
+            <p className="text-sm text-gray-400 mt-1">{t('logTotal')}</p>
           </div>
           <div className="bg-white rounded-2xl border border-emerald-100 shadow-sm p-5">
             <p className="text-3xl font-bold text-emerald-600">{successCount}</p>
-            <p className="text-sm text-gray-400 mt-1">Emails envoyés</p>
+            <p className="text-sm text-gray-400 mt-1">{t('logEmailsSent')}</p>
           </div>
           <div className="bg-white rounded-2xl border border-red-100 shadow-sm p-5">
             <p className="text-3xl font-bold text-red-500">{errorCount}</p>
-            <p className="text-sm text-gray-400 mt-1">Échecs</p>
+            <p className="text-sm text-gray-400 mt-1">{t('logFailed')}</p>
           </div>
         </div>
 
         {/* Filters + actions */}
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
           <div className="flex items-center gap-2">
-            {([['all', 'Tous'], ['success', '✓ Succès'], ['error', '✗ Échecs']] as [LogFilter, string][]).map(([v, label]) => (
+            {([['all', t('logFilterAll')], ['success', `✓ ${t('logSent')}`], ['error', `✗ ${t('logFail')}`]] as [LogFilter, string][]).map(([v, label]) => (
               <button key={v} onClick={() => setLogFilter(v)}
                 className={`px-4 py-2 rounded-xl text-sm font-medium transition-all ${
                   logFilter === v ? 'bg-gray-900 text-white' : 'text-gray-500 hover:text-gray-900 hover:bg-gray-100'
@@ -293,11 +295,11 @@ export default function AIAgentPage() {
           <div className="flex items-center gap-2">
             <button onClick={fetchData}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-blue-50 text-blue-700 hover:bg-blue-100 transition-colors">
-              🔄 Actualiser
+              🔄 {t('logRefresh')}
             </button>
             <button onClick={clearLogs}
               className="flex items-center gap-2 px-4 py-2 rounded-xl text-sm font-medium bg-gray-50 text-gray-600 hover:bg-gray-100 transition-colors">
-              🗑 Effacer tout
+              🗑 {t('logClearAll')}
             </button>
           </div>
         </div>
@@ -313,7 +315,7 @@ export default function AIAgentPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-gray-100 bg-gray-50">
                 <tr>
-                  {['Statut', 'Automatisation', 'Candidat', 'Destinataire', 'Étape', 'Date', ''].map(h => (
+                  {[t('logColStatus'), t('logColAutomation'), t('logColCandidate'), t('logColRecipient'), t('logColStage'), t('logColDate'), ''].map(h => (
                     <th key={h} className="px-4 py-3 text-left text-[11px] font-bold text-gray-400 uppercase tracking-wider">{h}</th>
                   ))}
                 </tr>
@@ -325,11 +327,11 @@ export default function AIAgentPage() {
                       <td className="px-4 py-4">
                         {log.status === 'success' ? (
                           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full">
-                            ✓ Envoyé
+                            ✓ {t('logSent')}
                           </span>
                         ) : (
                           <span className="inline-flex items-center gap-1 bg-red-50 text-red-600 text-xs font-bold px-3 py-1.5 rounded-full">
-                            ✗ Échec
+                            ✗ {t('logFail')}
                           </span>
                         )}
                       </td>
@@ -395,8 +397,8 @@ export default function AIAgentPage() {
             <div className="px-7 pt-6 pb-4 border-b border-gray-100">
               <div className="flex items-start justify-between">
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Nouvelle automatisation</h2>
-                  <p className="text-sm text-gray-400 mt-0.5">Déclenchez une action automatique lors du changement d&apos;étape</p>
+                  <h2 className="text-lg font-bold text-gray-900">{t('createTitle')}</h2>
+                  <p className="text-sm text-gray-400 mt-0.5">{t('createSubtitle')}</p>
                 </div>
                 <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none mt-0.5">×</button>
               </div>
@@ -411,10 +413,10 @@ export default function AIAgentPage() {
 
                   {/* Name */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Nom de la règle</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('createName')}</label>
                     <input type="text" required value={form.name}
                       onChange={e => setForm(p => ({ ...p, name: e.target.value }))}
-                      placeholder="Ex: Notif entretien n8n"
+                      placeholder={t('createNamePlaceholder')}
                       className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400 focus:border-transparent" />
                   </div>
 
@@ -422,10 +424,10 @@ export default function AIAgentPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <span className="text-yellow-500">⚡</span>
-                      <span className="text-sm font-semibold text-gray-800">Déclencheur</span>
+                      <span className="text-sm font-semibold text-gray-800">{t('createTrigger')}</span>
                     </div>
                     <div className="flex items-center gap-3">
-                      <span className="text-sm text-gray-500 whitespace-nowrap">Changement vers</span>
+                      <span className="text-sm text-gray-500 whitespace-nowrap">{t('createTriggerChangeTo')}</span>
                       <select value={form.trigger_value}
                         onChange={e => setForm(p => ({ ...p, trigger_value: e.target.value }))}
                         className="flex-1 border border-gray-200 rounded-xl px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -438,7 +440,7 @@ export default function AIAgentPage() {
                   <div>
                     <div className="flex items-center gap-2 mb-3">
                       <span>🎯</span>
-                      <span className="text-sm font-semibold text-gray-800">Action</span>
+                      <span className="text-sm font-semibold text-gray-800">{t('createAction')}</span>
                     </div>
                     <div className="flex gap-3 mb-4">
                       <button type="button"
@@ -448,7 +450,7 @@ export default function AIAgentPage() {
                             ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                             : 'border-gray-200 text-gray-500 hover:border-gray-300'
                         }`}>
-                        <span>📧</span> Envoyer un email
+                        <span>📧</span> {t('createSendEmail')}
                       </button>
                       <button type="button"
                         onClick={() => setForm(p => ({ ...p, action_type: 'webhook' }))}
@@ -457,18 +459,18 @@ export default function AIAgentPage() {
                             ? 'border-emerald-500 bg-emerald-50 text-emerald-700'
                             : 'border-gray-200 text-gray-500 hover:border-gray-300'
                         }`}>
-                        <span>🔗</span> Webhook (n8n, Zapier…)
+                        <span>🔗</span> {t('createWebhookAction')}
                       </button>
                     </div>
 
                     {form.action_type === 'send_email' ? (
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">Template email</label>
+                        <label className="block text-sm font-medium text-gray-700 mb-2">{t('createTemplateLabel')}</label>
                         <select value={form.template_id}
                           onChange={e => setForm(p => ({ ...p, template_id: e.target.value }))}
                           className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
                           {templates.length === 0
-                            ? <option value="">Aucun template disponible</option>
+                            ? <option value="">{t('createNoTemplate')}</option>
                             : templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)
                           }
                         </select>
@@ -477,14 +479,14 @@ export default function AIAgentPage() {
                     ) : (
                       <div className="flex gap-3">
                         <div className="flex-1">
-                          <label className="block text-sm font-medium text-gray-700 mb-2">URL du webhook</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t('createWebhookUrl')}</label>
                           <input type="url" required={form.action_type === 'webhook'} value={form.webhook_url}
                             onChange={e => setForm(p => ({ ...p, webhook_url: e.target.value }))}
                             placeholder="https://n8n.example.com/webhook/..."
                             className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-400" />
                         </div>
                         <div>
-                          <label className="block text-sm font-medium text-gray-700 mb-2">Méthode</label>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">{t('createWebhookMethod')}</label>
                           <select value={form.webhook_method}
                             onChange={e => setForm(p => ({ ...p, webhook_method: e.target.value }))}
                             className="border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-400">
@@ -502,23 +504,23 @@ export default function AIAgentPage() {
                 <div className="w-80 flex flex-col bg-gray-50">
                   {form.action_type === 'send_email' ? (
                     <div className="px-6 py-6 flex flex-col gap-4">
-                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Résumé</p>
+                      <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('createSummaryTitle')}</p>
                       <div className="space-y-3 text-sm">
                         <div className="flex items-start gap-2">
                           <span className="text-yellow-500 mt-0.5">⚡</span>
-                          <span className="text-gray-600">Étape : <strong className="text-gray-900">{form.trigger_value}</strong></span>
+                          <span className="text-gray-600">{t('createSummaryStage')} <strong className="text-gray-900">{form.trigger_value}</strong></span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-blue-500 mt-0.5">📧</span>
-                          <span className="text-gray-600">Template : <strong className="text-gray-900">{selectedTemplate?.name || '—'}</strong></span>
+                          <span className="text-gray-600">{t('createSummaryTemplate')} <strong className="text-gray-900">{selectedTemplate?.name || '—'}</strong></span>
                         </div>
                         <div className="flex items-start gap-2">
                           <span className="text-purple-500 mt-0.5">👤</span>
-                          <span className="text-gray-600">Destinataire : <strong className="text-gray-900">Email du candidat</strong></span>
+                          <span className="text-gray-600">{t('createSummaryRecipient')} <strong className="text-gray-900">{t('createSummaryCandidateEmail')}</strong></span>
                         </div>
                       </div>
                       <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-                        <p className="text-xs font-semibold text-blue-700 mb-2">Variables disponibles dans le template :</p>
+                        <p className="text-xs font-semibold text-blue-700 mb-2">{t('createVariablesTitle')}</p>
                         {['{{candidat.nom}}', '{{offre.titre}}', '{{pipeline.etape}}'].map(v => (
                           <p key={v} className="text-xs font-mono text-blue-600">{v}</p>
                         ))}
@@ -529,13 +531,13 @@ export default function AIAgentPage() {
                       {/* Payload fields */}
                       <div className="px-5 py-4 border-b border-gray-200">
                         <div className="flex items-center justify-between mb-3">
-                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Payload envoyé</p>
+                          <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">{t('createPayloadTitle')}</p>
                           <div className="flex items-center gap-2 text-xs">
                             <button type="button" onClick={() => setForm(p => ({ ...p, payload_fields: PAYLOAD_FIELDS }))}
-                              className="text-emerald-600 font-medium hover:underline">Tout</button>
+                              className="text-emerald-600 font-medium hover:underline">{t('createPayloadAll')}</button>
                             <span className="text-gray-300">|</span>
                             <button type="button" onClick={() => setForm(p => ({ ...p, payload_fields: [] }))}
-                              className="text-gray-400 font-medium hover:underline">Aucun</button>
+                              className="text-gray-400 font-medium hover:underline">{t('createPayloadNone')}</button>
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-1.5">
@@ -565,7 +567,7 @@ export default function AIAgentPage() {
                       </div>
                       {/* JSON preview */}
                       <div className="flex-1 overflow-auto">
-                        <p className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-800 text-gray-300">Aperçu JSON</p>
+                        <p className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-800 text-gray-300">{t('createJsonPreview')}</p>
                         <pre className="bg-gray-900 text-emerald-400 text-[10px] font-mono px-4 py-3 overflow-auto leading-relaxed h-64">
 {`{
 ${form.payload_fields.map(f => {
@@ -591,17 +593,17 @@ ${form.payload_fields.map(f => {
               {/* Footer */}
               <div className="px-7 py-4 border-t border-gray-100 flex items-center justify-between bg-white">
                 <p className="text-xs text-gray-400">
-                  {!form.name ? 'Remplissez tous les champs requis' : ''}
+                  {!form.name ? t('createFormInvalid') : ''}
                 </p>
                 <div className="flex gap-3">
                   <button type="button" onClick={() => setShowForm(false)}
                     className="px-5 py-2.5 border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition-colors">
-                    Annuler
+                    {t('createCancel')}
                   </button>
                   <button type="submit" disabled={saving || !form.name}
                     className="flex items-center gap-2 px-5 py-2.5 bg-emerald-500 text-white rounded-xl text-sm font-semibold hover:bg-emerald-600 transition-colors disabled:opacity-50">
                     <span>⚡</span>
-                    {saving ? 'Création…' : 'Créer l\'automatisation'}
+                    {saving ? t('createSubmitCreating') : t('createSubmit')}
                   </button>
                 </div>
               </div>

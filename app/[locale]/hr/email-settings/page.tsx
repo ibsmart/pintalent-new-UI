@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { useTranslations } from 'next-intl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -149,6 +150,7 @@ const SMTP_PRESETS = [
 ];
 
 function SmtpTab() {
+  const t = useTranslations('emailSettings');
   const [config, setConfig] = useState<SmtpConfig>({
     smtp_host: '', smtp_port: '587', smtp_user: '', smtp_password: '',
     smtp_from_name: '', smtp_from_email: '', smtp_secure: 'false',
@@ -169,8 +171,8 @@ function SmtpTab() {
     setMsg(null);
     try {
       const res = await fetch('/api/settings/smtp', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(config) });
-      if (res.ok) setMsg({ type: 'success', text: 'Configuration SMTP sauvegardée.' });
-      else setMsg({ type: 'error', text: 'Erreur lors de la sauvegarde.' });
+      if (res.ok) setMsg({ type: 'success', text: t('smtpSuccessMsg') });
+      else setMsg({ type: 'error', text: t('smtpSaveError') });
     } finally {
       setSaving(false);
     }
@@ -183,8 +185,8 @@ function SmtpTab() {
     try {
       const res = await fetch('/api/settings/smtp/test', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: testEmail }) });
       const data = await res.json();
-      if (res.ok) setMsg({ type: 'success', text: `Email de test envoyé à ${testEmail}` });
-      else setMsg({ type: 'error', text: data.error || 'Erreur lors du test.' });
+      if (res.ok) setMsg({ type: 'success', text: `${t('smtpTestSentMsg')} ${testEmail}` });
+      else setMsg({ type: 'error', text: data.error || t('smtpTestErrorMsg') });
     } finally {
       setTesting(false);
     }
@@ -194,8 +196,8 @@ function SmtpTab() {
     <div className="max-w-2xl space-y-6">
       {/* Guide fournisseurs */}
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-1">Choisir votre fournisseur</h3>
-        <p className="text-xs text-gray-400 mb-4">Cliquez sur un fournisseur pour pré-remplir la config et afficher le guide.</p>
+        <h3 className="font-semibold text-gray-900 mb-1">{t('smtpProvider')}</h3>
+        <p className="text-xs text-gray-400 mb-4">{t('smtpProviderSubtitle')}</p>
         <div className="grid grid-cols-3 gap-2 mb-4">
           {SMTP_PRESETS.map(p => (
             <button key={p.id} type="button"
@@ -215,7 +217,7 @@ function SmtpTab() {
             className={`flex items-center gap-2 px-3 py-2.5 rounded-xl border-2 text-left transition-all text-sm font-medium ${
               selectedGuide === 'custom' ? 'border-emerald-500 bg-emerald-50 text-emerald-800' : 'border-gray-100 text-gray-700 hover:border-gray-300'
             }`}>
-            <span>🔧</span><span>Autre / Custom</span>
+            <span>🔧</span><span>{t('smtpCustom')}</span>
           </button>
         </div>
 
@@ -225,7 +227,7 @@ function SmtpTab() {
           return (
             <div className="bg-gray-50 rounded-xl p-4 border border-gray-100 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-sm font-semibold text-gray-800">Guide {guide.label}</p>
+                <p className="text-sm font-semibold text-gray-800">{t('smtpGuideTitle')} {guide.label}</p>
                 <a href={guide.link} target="_blank" rel="noopener noreferrer"
                   className="text-xs text-blue-600 hover:underline flex items-center gap-1">
                   {guide.linkLabel} ↗
@@ -276,31 +278,31 @@ function SmtpTab() {
 
       <form onSubmit={handleSave} className="space-y-6">
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-          <h3 className="font-semibold text-gray-900">Serveur SMTP</h3>
+          <h3 className="font-semibold text-gray-900">{t('smtpServerSection')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div className="col-span-2 sm:col-span-1">
-              <label className="block text-sm font-medium text-gray-700 mb-1">Hôte SMTP</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpHostLabel')}</label>
               <input type="text" value={config.smtp_host} onChange={e => setConfig(c => ({ ...c, smtp_host: e.target.value }))}
                 placeholder="smtp.example.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Port</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpPortLabel')}</label>
               <input type="number" value={config.smtp_port} onChange={e => setConfig(c => ({ ...c, smtp_port: e.target.value }))}
                 placeholder="587"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Utilisateur</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpUserLabel')}</label>
             <input type="text" value={config.smtp_user} onChange={e => setConfig(c => ({ ...c, smtp_user: e.target.value }))}
               placeholder="user@example.com"
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Mot de passe</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpPasswordLabel')}</label>
             <input type="password" value={config.smtp_password} onChange={e => setConfig(c => ({ ...c, smtp_password: e.target.value }))}
-              placeholder="Laissez vide pour conserver l'actuel"
+              placeholder={t('smtpPasswordPlaceholder')}
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
           <div className="flex items-center gap-3">
@@ -309,21 +311,21 @@ function SmtpTab() {
               className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${config.smtp_secure === 'true' ? 'bg-emerald-600' : 'bg-gray-300'}`}>
               <span className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${config.smtp_secure === 'true' ? 'translate-x-6' : 'translate-x-1'}`} />
             </button>
-            <label className="text-sm font-medium text-gray-700">SSL/TLS (port 465)</label>
+            <label className="text-sm font-medium text-gray-700">{t('smtpSslLabel')}</label>
           </div>
         </div>
 
         <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-4">
-          <h3 className="font-semibold text-gray-900">Expéditeur</h3>
+          <h3 className="font-semibold text-gray-900">{t('smtpSenderSection')}</h3>
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom expéditeur</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpSenderNameLabel')}</label>
               <input type="text" value={config.smtp_from_name} onChange={e => setConfig(c => ({ ...c, smtp_from_name: e.target.value }))}
                 placeholder="GEEKFACT Recrutement"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email expéditeur</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('smtpSenderEmailLabel')}</label>
               <input type="email" value={config.smtp_from_email} onChange={e => setConfig(c => ({ ...c, smtp_from_email: e.target.value }))}
                 placeholder="recrutement@geekfact.com"
                 className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
@@ -334,20 +336,20 @@ function SmtpTab() {
         <div className="flex gap-3">
           <button type="submit" disabled={saving}
             className="px-6 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 disabled:opacity-50 transition-colors">
-            {saving ? 'Sauvegarde...' : 'Sauvegarder'}
+            {saving ? t('smtpSaving') : t('smtpSaveBtn')}
           </button>
         </div>
       </form>
 
       <div className="mt-8 bg-white rounded-2xl border border-gray-200 p-6">
-        <h3 className="font-semibold text-gray-900 mb-4">Tester la connexion</h3>
+        <h3 className="font-semibold text-gray-900 mb-4">{t('smtpTestTitle')}</h3>
         <div className="flex gap-3">
           <input type="email" value={testEmail} onChange={e => setTestEmail(e.target.value)}
             placeholder="votre@email.com"
             className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           <button onClick={handleTest} disabled={testing || !testEmail}
             className="px-5 py-2 bg-gray-800 text-white rounded-xl text-sm font-medium hover:bg-gray-900 disabled:opacity-50 transition-colors">
-            {testing ? 'Envoi...' : 'Envoyer un test'}
+            {testing ? t('smtpSendTestSending') : t('smtpSendTestBtn')}
           </button>
         </div>
       </div>
@@ -358,6 +360,8 @@ function SmtpTab() {
 // ─── Templates Tab ────────────────────────────────────────────────────────────
 
 function TemplatesTab() {
+  const t = useTranslations('emailSettings');
+  const tCommon = useTranslations('common');
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
   const [showModal, setShowModal] = useState(false);
@@ -394,7 +398,7 @@ function TemplatesTab() {
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer ce template ?')) return;
+    if (!confirm(t('templateDeleteConfirm'))) return;
     await fetch(`/api/email-templates/${id}`, { method: 'DELETE' });
     load();
   }
@@ -406,14 +410,14 @@ function TemplatesTab() {
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm text-gray-500">{templates.length} template{templates.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-gray-500">{templates.length} {templates.length !== 1 ? t('templateCountPlural') : t('templateCount')}</p>
         <button onClick={openNew} className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 transition-colors">
-          + Nouveau template
+          {t('templateNew')}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Chargement...</div>
+        <div className="text-center py-12 text-gray-400">{tCommon('loading')}</div>
       ) : (
         <div className="space-y-3">
           {templates.map(tpl => (
@@ -429,10 +433,10 @@ function TemplatesTab() {
               </div>
               <div className="flex gap-2 flex-shrink-0">
                 <button onClick={() => openEdit(tpl)} className="px-3 py-1.5 text-sm border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
-                  Modifier
+                  {tCommon('edit')}
                 </button>
                 <button onClick={() => handleDelete(tpl.id)} className="px-3 py-1.5 text-sm border border-emerald-200 text-emerald-600 rounded-lg hover:bg-emerald-50 transition-colors">
-                  Supprimer
+                  {tCommon('delete')}
                 </button>
               </div>
             </div>
@@ -444,17 +448,17 @@ function TemplatesTab() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
             <div className="p-6 border-b border-gray-100 flex justify-between items-center">
-              <h2 className="text-lg font-semibold">{editing ? 'Modifier le template' : 'Nouveau template'}</h2>
+              <h2 className="text-lg font-semibold">{editing ? t('templateEditTitle') : t('templateNewTitle')}</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
             </div>
             <div className="p-6 space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('templateNameLabel')}</label>
                 <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Objet</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('templateSubjectLabel')}</label>
                 <input value={form.subject} onChange={e => setForm(f => ({ ...f, subject: e.target.value }))}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 <div className="flex flex-wrap gap-1 mt-2">
@@ -467,7 +471,7 @@ function TemplatesTab() {
                 </div>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Corps (HTML)</label>
+                <label className="block text-sm font-medium text-gray-700 mb-1">{t('templateBodyHtml')}</label>
                 <div className="flex flex-wrap gap-1 mb-2">
                   {VARIABLE_CHIPS.map(chip => (
                     <button key={chip.value} type="button" onClick={() => insertVariable(chip.value, 'body')}
@@ -483,11 +487,11 @@ function TemplatesTab() {
             </div>
             <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
               <button onClick={() => setShowModal(false)} className="px-4 py-2 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-                Annuler
+                {tCommon('cancel')}
               </button>
               <button onClick={handleSave} disabled={!form.name || !form.subject || !form.body}
                 className="px-5 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 disabled:opacity-50 transition-colors">
-                {editing ? 'Mettre à jour' : 'Créer'}
+                {editing ? t('templateUpdateBtn') : t('templateCreateBtn')}
               </button>
             </div>
           </div>
@@ -505,6 +509,8 @@ const ACTION_TYPES = [
 ];
 
 function AutomationsTab() {
+  const t = useTranslations('emailSettings');
+  const tCommon = useTranslations('common');
   const [automations, setAutomations] = useState<Automation[]>([]);
   const [templates, setTemplates] = useState<EmailTemplate[]>([]);
   const [loading, setLoading] = useState(true);
@@ -557,7 +563,7 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
   }
 
   async function handleDelete(id: string) {
-    if (!confirm('Supprimer cette automatisation ?')) return;
+    if (!confirm(t('automationDeleteConfirm'))) return;
     await fetch(`/api/automations/${id}`, { method: 'DELETE' });
     load();
   }
@@ -625,31 +631,31 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
   return (
     <div>
       <div className="flex justify-between items-center mb-6">
-        <p className="text-sm text-gray-500">{automations.length} règle{automations.length !== 1 ? 's' : ''}</p>
+        <p className="text-sm text-gray-500">{automations.length} {automations.length !== 1 ? t('automationCountPlural') : t('automationCount')}</p>
         <button onClick={() => { setForm({ name: '', trigger_value: PIPELINE_STAGES[0], action_type: 'send_email', template_id: templates[0]?.id || '', webhook_url: '', webhook_method: 'POST', webhook_fields: ALL_WEBHOOK_KEYS }); setShowModal(true); }}
           className="px-4 py-2 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 transition-colors">
-          + Nouvelle automatisation
+          {t('automationNew')}
         </button>
       </div>
 
       {loading ? (
-        <div className="text-center py-12 text-gray-400">Chargement...</div>
+        <div className="text-center py-12 text-gray-400">{tCommon('loading')}</div>
       ) : automations.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-12 text-center">
           <div className="text-4xl mb-3">⚡</div>
-          <p className="text-gray-500">Aucune automatisation configurée.</p>
-          <p className="text-sm text-gray-400 mt-1">Créez des règles pour envoyer des emails ou déclencher des webhooks.</p>
+          <p className="text-gray-500">{t('automationNone')}</p>
+          <p className="text-sm text-gray-400 mt-1">{t('automationNoneDesc')}</p>
         </div>
       ) : (
         <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
           <table className="w-full text-sm">
             <thead className="bg-gray-50 border-b border-gray-200">
               <tr>
-                <th className="px-5 py-3 text-left font-medium text-gray-600">Nom</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-600">Déclencheur</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-600">Action</th>
-                <th className="px-5 py-3 text-left font-medium text-gray-600">Détail</th>
-                <th className="px-5 py-3 text-center font-medium text-gray-600">Actif</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-600">{t('automationColName')}</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-600">{t('automationColTrigger')}</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-600">{t('automationColAction')}</th>
+                <th className="px-5 py-3 text-left font-medium text-gray-600">{t('automationColDetail')}</th>
+                <th className="px-5 py-3 text-center font-medium text-gray-600">{t('automationColActive')}</th>
                 <th className="px-5 py-3"></th>
               </tr>
             </thead>
@@ -659,7 +665,7 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
                   <td className="px-5 py-3 font-medium text-gray-900">{auto.name}</td>
                   <td className="px-5 py-3">
                     <span className="px-2 py-0.5 bg-blue-50 text-blue-700 rounded text-xs">
-                      Étape : {auto.trigger_value}
+                      {t('automationStage')} {auto.trigger_value}
                     </span>
                   </td>
                   <td className="px-5 py-3 text-gray-600">{actionLabel(auto)}</td>
@@ -671,7 +677,7 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
                     </button>
                   </td>
                   <td className="px-5 py-3 text-right">
-                    <button onClick={() => handleDelete(auto.id)} className="text-emerald-500 hover:text-emerald-700 text-xs">Supprimer</button>
+                    <button onClick={() => handleDelete(auto.id)} className="text-emerald-500 hover:text-emerald-700 text-xs">{tCommon('delete')}</button>
                   </td>
                 </tr>
               ))}
@@ -686,8 +692,8 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
             {/* Header */}
             <div className="px-8 py-5 border-b border-gray-100 flex justify-between items-center">
               <div>
-                <h2 className="text-lg font-semibold text-gray-900">Nouvelle automatisation</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Déclenchez une action automatique lors du changement d&apos;étape</p>
+                <h2 className="text-lg font-semibold text-gray-900">{t('automationNewTitle')}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{t('automationNewSubtitle')}</p>
               </div>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors">&times;</button>
             </div>
@@ -697,11 +703,11 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
 
               {/* LEFT — configuration */}
               <div className="flex-1 p-6 space-y-5">
-                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Configuration</p>
+                <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('automationConfigSection')}</p>
 
                 {/* Nom */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">Nom de la règle</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('automationNameLabel')}</label>
                   <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                     placeholder="Ex: Notif entretien n8n"
                     className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
@@ -709,9 +715,9 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
 
                 {/* Déclencheur */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1.5">⚡ Déclencheur</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1.5">⚡ {t('automationTriggerLabel')}</label>
                   <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-400 whitespace-nowrap">Changement vers</span>
+                    <span className="text-xs text-gray-400 whitespace-nowrap">{t('automationChangeTo')}</span>
                     <select value={form.trigger_value} onChange={e => setForm(f => ({ ...f, trigger_value: e.target.value }))}
                       className="flex-1 px-3 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                       {PIPELINE_STAGES.map(s => <option key={s} value={s}>{s}</option>)}
@@ -721,7 +727,7 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
 
                 {/* Type d'action */}
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">🎯 Action</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">🎯 {t('automationActionLabel')}</label>
                   <div className="grid grid-cols-2 gap-2">
                     {ACTION_TYPES.map(at => (
                       <button key={at.value} type="button"
@@ -741,14 +747,14 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
                 {/* Email — template */}
                 {form.action_type === 'send_email' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1.5">Template email</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1.5">{t('automationTemplateLabel')}</label>
                     <select value={form.template_id} onChange={e => setForm(f => ({ ...f, template_id: e.target.value }))}
                       className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                      <option value="">— Sélectionner un template —</option>
+                      <option value="">{t('automationSelectTemplate')}</option>
                       {templates.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
                     </select>
                     {form.template_id && (
-                      <p className="text-xs text-green-600 mt-1.5">✓ L&apos;email sera envoyé à l&apos;adresse du candidat</p>
+                      <p className="text-xs text-green-600 mt-1.5">✓ {t('automationEmailSentInfo')}</p>
                     )}
                   </div>
                 )}
@@ -758,13 +764,13 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
                   <div className="space-y-3">
                     <div className="flex gap-2">
                       <div className="flex-1">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">URL du webhook</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('automationWebhookUrl')}</label>
                         <input value={form.webhook_url} onChange={e => setForm(f => ({ ...f, webhook_url: e.target.value }))}
                           placeholder="https://n8n.example.com/webhook/..."
                           className="w-full px-3 py-2 border border-gray-300 rounded-xl text-xs font-mono focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                       </div>
                       <div className="w-24">
-                        <label className="block text-xs font-medium text-gray-700 mb-1">Méthode</label>
+                        <label className="block text-xs font-medium text-gray-700 mb-1">{t('automationWebhookMethod')}</label>
                         <select value={form.webhook_method} onChange={e => setForm(f => ({ ...f, webhook_method: e.target.value }))}
                           className="w-full px-2 py-2 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
                           <option>POST</option>
@@ -781,23 +787,23 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
 
                 {form.action_type === 'send_email' && (
                   <>
-                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Résumé</p>
+                    <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('automationSummary')}</p>
                     <div className="bg-white rounded-xl border border-gray-200 p-4 space-y-3 text-sm">
                       <div className="flex items-center gap-2 text-gray-600">
                         <span>⚡</span>
-                        <span>Étape : <strong className="text-gray-900">{form.trigger_value || '—'}</strong></span>
+                        <span>{t('automationStage')} <strong className="text-gray-900">{form.trigger_value || '—'}</strong></span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
                         <span>📧</span>
-                        <span>Template : <strong className="text-gray-900">{templates.find(t => t.id === form.template_id)?.name || '—'}</strong></span>
+                        <span>{t('automationTemplateColon')} <strong className="text-gray-900">{templates.find(tpl => tpl.id === form.template_id)?.name || '—'}</strong></span>
                       </div>
                       <div className="flex items-center gap-2 text-gray-600">
                         <span>👤</span>
-                        <span>Destinataire : <strong className="text-gray-900">Email du candidat</strong></span>
+                        <span>{t('automationRecipient')} <strong className="text-gray-900">{t('automationCandidateEmail')}</strong></span>
                       </div>
                     </div>
                     <div className="bg-blue-50 border border-blue-100 rounded-xl p-3 text-xs text-blue-600">
-                      <p className="font-semibold mb-1">Variables disponibles dans le template :</p>
+                      <p className="font-semibold mb-1">{t('automationVariablesTitle')}</p>
                       <p className="font-mono">{'{{candidat.nom}}'}</p>
                       <p className="font-mono">{'{{offre.titre}}'}</p>
                       <p className="font-mono">{'{{pipeline.etape}}'}</p>
@@ -808,13 +814,13 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
                 {form.action_type === 'webhook' && (
                   <>
                     <div className="flex items-center justify-between">
-                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">Payload envoyé</p>
+                      <p className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{t('automationPayload')}</p>
                       <div className="flex gap-2 text-xs">
                         <button type="button" onClick={() => setForm(f => ({ ...f, webhook_fields: ALL_WEBHOOK_KEYS }))}
-                          className="text-emerald-600 hover:underline font-medium">Tout</button>
+                          className="text-emerald-600 hover:underline font-medium">{t('automationPayloadAll')}</button>
                         <span className="text-gray-300">|</span>
                         <button type="button" onClick={() => setForm(f => ({ ...f, webhook_fields: [] }))}
-                          className="text-gray-400 hover:underline">Aucun</button>
+                          className="text-gray-400 hover:underline">{t('automationPayloadNone')}</button>
                       </div>
                     </div>
 
@@ -847,7 +853,7 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
 
                     {/* Aperçu JSON */}
                     <div className="bg-gray-900 rounded-xl p-3 flex-1">
-                      <p className="text-gray-500 text-[10px] mb-2 font-medium uppercase tracking-wide">Aperçu JSON</p>
+                      <p className="text-gray-500 text-[10px] mb-2 font-medium uppercase tracking-wide">{t('automationJsonPreview')}</p>
                       <pre className="text-[11px] font-mono text-green-400 leading-relaxed overflow-auto max-h-48">{JSON.stringify({
                         event: 'stage_change',
                         stage: form.trigger_value,
@@ -866,15 +872,15 @@ const ALL_WEBHOOK_KEYS = WEBHOOK_FIELDS.filter(f => !f.always).map(f => f.key);
             {/* Footer */}
             <div className="px-8 py-4 border-t border-gray-100 flex items-center justify-between">
               <p className="text-xs text-gray-400">
-                {isFormValid() ? '✓ Prêt à créer' : 'Remplissez tous les champs requis'}
+                {isFormValid() ? `✓ ${t('automationFormValid')}` : t('automationFormInvalid')}
               </p>
               <div className="flex gap-3">
                 <button onClick={() => setShowModal(false)} className="px-5 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-                  Annuler
+                  {tCommon('cancel')}
                 </button>
                 <button onClick={handleCreate} disabled={!isFormValid()}
                   className="px-6 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 disabled:opacity-40 transition-colors">
-                  ⚡ Créer l&apos;automatisation
+                  ⚡ {t('automationCreateBtn')}
                 </button>
               </div>
             </div>
@@ -903,6 +909,7 @@ interface AutomationLog {
 }
 
 function HistoriqueTab() {
+  const t = useTranslations('emailSettings');
   const [logs, setLogs] = useState<AutomationLog[]>([]);
   const [loading, setLoading] = useState(true);
   const [filterStatus, setFilterStatus] = useState('');
@@ -921,7 +928,7 @@ function HistoriqueTab() {
   useEffect(() => { load(); }, [filterStatus]); // eslint-disable-line react-hooks/exhaustive-deps
 
   async function clearAll() {
-    if (!confirm('Effacer tout l\'historique ?')) return;
+    if (!confirm(t('historyClearAllConfirm'))) return;
     setClearing(true);
     await fetch('/api/automation-logs', { method: 'DELETE' });
     setClearing(false);
@@ -936,9 +943,9 @@ function HistoriqueTab() {
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4">
         {[
-          { label: 'Total exécutions', value: logs.length, color: 'text-gray-900', bg: 'bg-gray-50 border-gray-200' },
-          { label: 'Emails envoyés', value: successCount, color: 'text-green-700', bg: 'bg-green-50 border-green-200' },
-          { label: 'Échecs', value: errorCount, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
+          { label: t('historyTotalExec'), value: logs.length, color: 'text-gray-900', bg: 'bg-gray-50 border-gray-200' },
+          { label: t('historyEmailsSent'), value: successCount, color: 'text-green-700', bg: 'bg-green-50 border-green-200' },
+          { label: t('historyErrors'), value: errorCount, color: 'text-emerald-700', bg: 'bg-emerald-50 border-emerald-200' },
         ].map(k => (
           <div key={k.label} className={`rounded-2xl border p-4 ${k.bg}`}>
             <div className={`text-2xl font-bold ${k.color}`}>{k.value}</div>
@@ -951,9 +958,9 @@ function HistoriqueTab() {
       <div className="flex items-center justify-between gap-3">
         <div className="flex gap-2">
           {[
-            { value: '', label: 'Tous' },
-            { value: 'success', label: '✓ Succès' },
-            { value: 'error', label: '✕ Échecs' },
+            { value: '', label: t('historyFilterAll') },
+            { value: 'success', label: t('historyFilterSuccess') },
+            { value: 'error', label: t('historyFilterError') },
           ].map(f => (
             <button key={f.value} onClick={() => setFilterStatus(f.value)}
               className={`px-4 py-2 rounded-xl text-sm font-medium border transition-all ${
@@ -967,12 +974,12 @@ function HistoriqueTab() {
         </div>
         <div className="flex gap-2">
           <button onClick={load} className="px-4 py-2 rounded-xl text-sm border border-gray-200 hover:bg-gray-50 transition-colors">
-            🔄 Actualiser
+            🔄 {t('historyRefresh')}
           </button>
           {logs.length > 0 && (
             <button onClick={clearAll} disabled={clearing}
               className="px-4 py-2 rounded-xl text-sm border border-emerald-200 text-emerald-600 hover:bg-emerald-50 transition-colors disabled:opacity-50">
-              {clearing ? '⏳' : '🗑 Effacer tout'}
+              {clearing ? '⏳' : `🗑 ${t('historyClearAll')}`}
             </button>
           )}
         </div>
@@ -987,19 +994,19 @@ function HistoriqueTab() {
         ) : logs.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-3">📭</div>
-            <p className="font-medium">Aucune exécution pour l'instant</p>
-            <p className="text-sm mt-1">Les automatisations apparaîtront ici dès qu'elles seront déclenchées.</p>
+            <p className="font-medium">{t('historyNone')}</p>
+            <p className="text-sm mt-1">{t('historyNoneDesc')}</p>
           </div>
         ) : (
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100 text-xs font-semibold text-gray-500 uppercase tracking-wide">
-                <th className="px-5 py-3 text-left">Statut</th>
-                <th className="px-5 py-3 text-left">Automatisation</th>
-                <th className="px-5 py-3 text-left">Candidat</th>
-                <th className="px-5 py-3 text-left">Destinataire</th>
-                <th className="px-5 py-3 text-left">Étape</th>
-                <th className="px-5 py-3 text-left">Date</th>
+                <th className="px-5 py-3 text-left">{t('historyColStatus')}</th>
+                <th className="px-5 py-3 text-left">{t('historyColAutomation')}</th>
+                <th className="px-5 py-3 text-left">{t('historyColCandidate')}</th>
+                <th className="px-5 py-3 text-left">{t('historyColRecipient')}</th>
+                <th className="px-5 py-3 text-left">{t('historyColStage')}</th>
+                <th className="px-5 py-3 text-left">{t('historyColDate')}</th>
                 <th className="px-5 py-3 w-8"></th>
               </tr>
             </thead>
@@ -1013,7 +1020,7 @@ function HistoriqueTab() {
                       <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-semibold ${
                         log.status === 'success' ? 'bg-green-100 text-green-700' : 'bg-emerald-100 text-emerald-700'
                       }`}>
-                        {log.status === 'success' ? '✓ Envoyé' : '✕ Échec'}
+                        {log.status === 'success' ? t('historyLogSent') : t('historyLogFail')}
                       </span>
                     </td>
                     <td className="px-5 py-3 text-sm font-medium text-gray-900">{log.automation_name}</td>
@@ -1037,7 +1044,7 @@ function HistoriqueTab() {
                       <td colSpan={7} className="px-5 py-3">
                         <div className="text-xs space-y-1.5">
                           {log.subject && (
-                            <div><span className="font-semibold text-gray-600">Objet : </span><span className="text-gray-800">{log.subject}</span></div>
+                            <div><span className="font-semibold text-gray-600">{t('historySubjectDetail')}</span><span className="text-gray-800">{log.subject}</span></div>
                           )}
                           {log.error && (
                             <div className="flex items-start gap-1.5 bg-emerald-50 border border-emerald-200 rounded-lg px-3 py-2">
@@ -1045,7 +1052,7 @@ function HistoriqueTab() {
                               <span className="text-emerald-700">{log.error}</span>
                             </div>
                           )}
-                          <div><span className="font-semibold text-gray-600">Action : </span><span className="text-gray-500">{log.action_type}</span></div>
+                          <div><span className="font-semibold text-gray-600">{t('historyActionDetail')}</span><span className="text-gray-500">{log.action_type}</span></div>
                         </div>
                       </td>
                     </tr>
@@ -1062,21 +1069,24 @@ function HistoriqueTab() {
 
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
-const TABS = [
-  { id: 'smtp',        label: 'SMTP',           icon: '📧' },
-  { id: 'templates',   label: 'Templates',       icon: '✉️' },
-  { id: 'automations', label: 'Automatisations', icon: '⚡' },
-  { id: 'historique',  label: 'Historique',      icon: '📋' },
-];
+// TABS defined inside EmailSettingsPage component
 
 export default function EmailSettingsPage() {
+  const t = useTranslations('emailSettings');
   const [activeTab, setActiveTab] = useState('smtp');
+
+  const TABS = [
+    { id: 'smtp',        label: t('tabSmtp'),        icon: '📧' },
+    { id: 'templates',   label: t('tabTemplates'),   icon: '✉️' },
+    { id: 'automations', label: t('tabAutomations'), icon: '⚡' },
+    { id: 'historique',  label: t('tabHistory'),     icon: '📋' },
+  ];
 
   return (
     <div className="p-8">
       <div className="mb-8">
-        <h1 className="text-2xl font-bold text-gray-900">Paramètres email</h1>
-        <p className="text-gray-500 mt-1">Configurez le serveur SMTP, les templates d&apos;email et les automatisations.</p>
+        <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+        <p className="text-gray-500 mt-1">{t('subtitle')}</p>
       </div>
 
       {/* Tabs */}

@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback, Suspense } from 'react';
 import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface Application {
   id: string;
@@ -47,6 +48,8 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 function PipelineContent() {
+  const t = useTranslations('pipeline');
+  const tStages = useTranslations('stages');
   const searchParams = useSearchParams();
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -54,6 +57,16 @@ function PipelineContent() {
   const [dragOver, setDragOver] = useState<string | null>(null);
   const [filterJob, setFilterJob] = useState(() => searchParams.get('job_id') || '');
   const [jobs, setJobs] = useState<{ id: string; title: string }[]>([]);
+
+  const stageLabels: Record<string, string> = {
+    'Nouveau': tStages('Nouveau'),
+    'Présélectionné': tStages('Présélectionné'),
+    'Entretien': tStages('Entretien'),
+    'Test technique': tStages('Test technique'),
+    'Offre': tStages('Offre'),
+    'Embauché': tStages('Embauché'),
+    'Rejeté': tStages('Rejeté'),
+  };
 
   const loadData = useCallback(() => {
     const url = filterJob ? `/api/applications?job_id=${filterJob}` : '/api/applications';
@@ -106,12 +119,12 @@ function PipelineContent() {
         <div className="flex items-center gap-4">
           <select value={filterJob} onChange={e => setFilterJob(e.target.value)}
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="">Tous les postes</option>
+            <option value="">{t('allJobs')}</option>
             {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
           <div>
-            <h1 className="text-2xl font-bold text-gray-900">Pipeline de recrutement</h1>
-            <p className="text-gray-500 text-sm mt-1">Glissez-déposez les candidats entre les étapes</p>
+            <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+            <p className="text-gray-500 text-sm mt-1">{t('subtitle')}</p>
           </div>
         </div>
       </div>
@@ -135,7 +148,7 @@ function PipelineContent() {
               >
                 {/* Column header */}
                 <div className={`${colors.header} rounded-t-2xl px-4 py-3 flex items-center justify-between`}>
-                  <span className="font-semibold text-sm">{stage}</span>
+                  <span className="font-semibold text-sm">{stageLabels[stage] ?? stage}</span>
                   <span className="bg-white/60 text-current text-xs font-bold px-2 py-0.5 rounded-full">{stageApps.length}</span>
                 </div>
 
@@ -143,7 +156,7 @@ function PipelineContent() {
                 <div className="p-3 space-y-3 flex-1 overflow-y-auto max-h-[70vh]">
                   {stageApps.length === 0 && (
                     <div className="text-center text-gray-400 text-xs py-6 border-2 border-dashed border-gray-200 rounded-xl">
-                      Déposez ici
+                      {t('dropHere')}
                     </div>
                   )}
                   {stageApps.map(app => (
@@ -177,7 +190,7 @@ function PipelineContent() {
                         {STAGES.filter(s => s !== stage).slice(0, 3).map(s => (
                           <button key={s} onClick={() => moveCard(app.id, s)}
                             className="text-xs text-gray-500 hover:text-emerald-700 hover:bg-emerald-50 px-2 py-0.5 rounded-full border border-gray-100 hover:border-emerald-200 transition-colors">
-                            → {s}
+                            → {stageLabels[s] ?? s}
                           </button>
                         ))}
                       </div>
@@ -195,7 +208,7 @@ function PipelineContent() {
 
 export default function PipelinePage() {
   return (
-    <Suspense fallback={<div className="p-8 text-gray-400">Chargement…</div>}>
+    <Suspense fallback={<div className="p-8 text-gray-400">{/* loading */}</div>}>
       <PipelineContent />
     </Suspense>
   );

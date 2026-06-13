@@ -136,6 +136,8 @@ function migrate(db: Database.Database) {
   try { db.exec('ALTER TABLE candidates ADD COLUMN years_experience TEXT DEFAULT ""'); } catch { /* already exists */ }
   // Add campaign_id to jobs if not exists
   try { db.exec('ALTER TABLE jobs ADD COLUMN campaign_id TEXT REFERENCES projects(id) ON DELETE SET NULL'); } catch { /* already exists */ }
+  // Add created_by to jobs (references the user who created the job)
+  try { db.exec('ALTER TABLE jobs ADD COLUMN created_by TEXT REFERENCES users(id) ON DELETE SET NULL'); } catch { /* already exists */ }
 
   db.exec(`
     CREATE TABLE IF NOT EXISTS projects (

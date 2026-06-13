@@ -3,6 +3,7 @@
 import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import { useTranslations } from 'next-intl';
 
 interface CampaignJob {
   id: string; title: string; department: string; location: string;
@@ -58,6 +59,7 @@ const MINI_STAGES = [
 
 /* ── Kanban inline ─────────────────────────────────────────── */
 function PipelinePanel({ jobId }: { jobId: string }) {
+  const t = useTranslations('projects');
   const [apps, setApps] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [dragging, setDragging] = useState<string | null>(null);
@@ -83,7 +85,7 @@ function PipelinePanel({ jobId }: { jobId: string }) {
 
   if (apps.length === 0) return (
     <div className="text-center py-8 text-gray-400 bg-gray-50 rounded-xl border border-dashed border-gray-200">
-      <p className="text-sm">Aucun candidat — <Link href={`/jobs/${jobId}`} target="_blank" className="text-emerald-600 hover:underline">voir l'offre publique</Link></p>
+      <p className="text-sm">{t('detailNoCandidate')} — <Link href={`/jobs/${jobId}`} target="_blank" className="text-emerald-600 hover:underline">voir l&apos;offre publique</Link></p>
     </div>
   );
 
@@ -103,7 +105,7 @@ function PipelinePanel({ jobId }: { jobId: string }) {
                 <span className="text-xs bg-white/60 font-bold px-1.5 py-0.5 rounded-full">{stageApps.length}</span>
               </div>
               <div className="p-2 space-y-2 max-h-56 overflow-y-auto">
-                {stageApps.length === 0 && <div className="text-center py-3 text-gray-300 text-xs border border-dashed border-gray-100 rounded-lg">Déposer ici</div>}
+                {stageApps.length === 0 && <div className="text-center py-3 text-gray-300 text-xs border border-dashed border-gray-100 rounded-lg">{t('detailDropHere')}</div>}
                 {stageApps.map(app => (
                   <div key={app.id} draggable
                     onDragStart={e => { setDragging(app.id); e.dataTransfer.setData('text', app.id); }}
@@ -137,6 +139,7 @@ function PipelinePanel({ jobId }: { jobId: string }) {
 
 /* ── Page principale ───────────────────────────────────────── */
 export default function CampaignDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations('projects');
   const { id } = use(params);
   const [campaign, setCampaign] = useState<Campaign | null>(null);
   const [loading, setLoading] = useState(true);
@@ -208,7 +211,7 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
     <div className="p-8 space-y-6 max-w-7xl">
       {/* Breadcrumb */}
       <div className="flex items-center gap-2 text-sm text-gray-500">
-        <Link href="/hr/projects" className="hover:text-gray-900">Campagnes</Link>
+        <Link href="/hr/projects" className="hover:text-gray-900">{t('detailBreadcrumb')}</Link>
         <span>/</span>
         <span className="text-gray-900 font-medium">{campaign.name}</span>
       </div>
@@ -271,10 +274,10 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         {/* KPIs */}
         <div className="mt-5 pt-5 border-t border-gray-100 grid grid-cols-2 sm:grid-cols-4 gap-4">
           {[
-            { label: 'Offres liées', value: campaign.jobs.length, icon: '📋' },
-            { label: 'Candidatures', value: totalCandidates, icon: '👥' },
-            { label: 'Embauchés', value: totalHired, icon: '🎉', green: true },
-            { label: 'Taux remplissage', value: totalCandidates > 0 ? `${Math.round((totalHired / totalCandidates) * 100)}%` : '—', icon: '📊' },
+            { label: t('kpiJobs'), value: campaign.jobs.length, icon: '📋' },
+            { label: t('kpiApplications'), value: totalCandidates, icon: '👥' },
+            { label: t('kpiHired'), value: totalHired, icon: '🎉', green: true },
+            { label: t('kpiFillRate'), value: totalCandidates > 0 ? `${Math.round((totalHired / totalCandidates) * 100)}%` : '—', icon: '📊' },
           ].map(s => (
             <div key={s.label} className="flex items-center gap-3">
               <span className="text-xl">{s.icon}</span>
@@ -290,15 +293,15 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
       {/* Offres de la campagne */}
       <div className="space-y-4">
         <div className="flex items-center justify-between">
-          <h2 className="text-lg font-bold text-gray-900">Offres d'emploi ({campaign.jobs.length})</h2>
+          <h2 className="text-lg font-bold text-gray-900">{t('detailJobs')} ({campaign.jobs.length})</h2>
           <div className="flex gap-2">
             <button onClick={() => setShowLinkModal(true)}
               className="flex items-center gap-2 border border-gray-200 text-gray-700 hover:bg-gray-50 px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-              🔗 Rattacher une offre existante
+              🔗 {t('detailAttach')}
             </button>
             <Link href={`/hr/jobs?new=1&campaign_id=${id}`}
               className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-              + Créer une offre
+              {t('detailNewJob')}
             </Link>
           </div>
         </div>
@@ -306,14 +309,14 @@ export default function CampaignDetailPage({ params }: { params: Promise<{ id: s
         {campaign.jobs.length === 0 ? (
           <div className="text-center py-16 bg-white rounded-2xl border border-gray-100">
             <div className="text-4xl mb-3">📋</div>
-            <h3 className="font-semibold text-gray-900 mb-2">Aucune offre liée</h3>
+            <h3 className="font-semibold text-gray-900 mb-2">{t('detailNoJobs')}</h3>
             <p className="text-gray-500 text-sm mb-5">Rattachez des offres existantes ou créez-en de nouvelles</p>
             <div className="flex items-center justify-center gap-3">
               <button onClick={() => setShowLinkModal(true)} className="border border-gray-200 text-gray-700 hover:bg-gray-50 px-5 py-2.5 rounded-xl text-sm font-medium">
-                🔗 Rattacher une offre
+                🔗 {t('detailAttach')}
               </button>
               <Link href={`/hr/jobs?new=1&campaign_id=${id}`} className="bg-emerald-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold hover:bg-emerald-800">
-                + Créer une offre
+                {t('detailNewJob')}
               </Link>
             </div>
           </div>

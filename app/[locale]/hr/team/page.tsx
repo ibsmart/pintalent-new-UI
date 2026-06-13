@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
+import { useTranslations } from 'next-intl';
 
 const ALL_PERMISSIONS_LIST = [
   'candidates.view','candidates.create','candidates.delete',
@@ -117,13 +118,14 @@ function Avatar({ user, size = 'md' }: { user: User; size?: 'sm' | 'md' | 'lg' }
 // ─── Invite Modal ─────────────────────────────────────────────────────────────
 
 function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: () => Promise<void> }) {
+  const t = useTranslations('team');
   const [form, setForm] = useState({ name: '', email: '', role: 'rh', password: '' });
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [showPwd, setShowPwd] = useState(false);
 
   async function handleCreate() {
-    if (!form.name || !form.email) { setError('Nom et email requis'); return; }
+    if (!form.name || !form.email) { setError(t('inviteRequiredError')); return; }
     setSaving(true); setError('');
     const res = await fetch('/api/team', {
       method: 'POST',
@@ -141,8 +143,8 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Ajouter un membre</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Le membre pourra se connecter avec ces identifiants</p>
+            <h2 className="text-lg font-semibold text-gray-900">{t('inviteTitle')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('inviteSubtitle')}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">&times;</button>
         </div>
@@ -150,13 +152,13 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           {/* Nom + Email */}
           <div className="grid grid-cols-2 gap-3">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Nom complet</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inviteName')}</label>
               <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
                 placeholder="Marie Dupont"
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">{t('inviteEmail')}</label>
               <input type="email" value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))}
                 placeholder="marie@entreprise.com"
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
@@ -165,7 +167,7 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 
           {/* Rôle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rôle</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('inviteRole')}</label>
             <div className="grid grid-cols-2 gap-2">
               {ROLES.map(role => (
                 <button key={role.id} type="button" onClick={() => setForm(f => ({ ...f, role: role.id }))}
@@ -185,8 +187,8 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
           {/* Mot de passe */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Mot de passe temporaire
-              <span className="text-gray-400 font-normal ml-1">(défaut : ChangeMe2024!)</span>
+              {t('invitePassword')}
+              <span className="text-gray-400 font-normal ml-1">{t('invitePasswordDefault')}</span>
             </label>
             <div className="relative">
               <input type={showPwd ? 'text' : 'password'} value={form.password}
@@ -204,11 +206,11 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
           <button onClick={onClose} className="px-4 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">
-            Annuler
+            {t('inviteCancel')}
           </button>
           <button onClick={handleCreate} disabled={saving || !form.name || !form.email}
             className="px-6 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 disabled:opacity-40 transition-colors">
-            {saving ? '⏳ Création…' : '✚ Ajouter'}
+            {saving ? `⏳ ${t('inviteSubmitCreating')}` : `✚ ${t('inviteSubmit')}`}
           </button>
         </div>
       </div>
@@ -219,6 +221,7 @@ function InviteModal({ onClose, onCreated }: { onClose: () => void; onCreated: (
 // ─── Edit Modal ───────────────────────────────────────────────────────────────
 
 function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void; onSaved: () => Promise<void> }) {
+  const t = useTranslations('team');
   const [form, setForm] = useState({ name: user.name, role: user.role, avatar_color: user.avatar_color, password: '' });
   const [saving, setSaving] = useState(false);
   const [showPwd, setShowPwd] = useState(false);
@@ -253,14 +256,14 @@ function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void
         <div className="p-6 space-y-5">
           {/* Nom */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Nom</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('inviteName')}</label>
             <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
               className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           </div>
 
           {/* Couleur avatar */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Couleur avatar</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('editAvatarColor')}</label>
             <div className="flex gap-2">
               {AVATAR_COLORS.map(c => (
                 <button key={c} type="button" onClick={() => setForm(f => ({ ...f, avatar_color: c }))}
@@ -272,7 +275,7 @@ function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void
 
           {/* Rôle */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Rôle</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">{t('inviteRole')}</label>
             <div className="grid grid-cols-2 gap-2">
               {ROLES.map(role => (
                 <button key={role.id} type="button" onClick={() => setForm(f => ({ ...f, role: role.id }))}
@@ -292,7 +295,7 @@ function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void
           {/* Nouveau mot de passe */}
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">
-              Nouveau mot de passe <span className="text-gray-400 font-normal">(laisser vide pour ne pas changer)</span>
+              {t('editNewPassword')} <span className="text-gray-400 font-normal">{t('editNewPasswordHint')}</span>
             </label>
             <div className="relative">
               <input type={showPwd ? 'text' : 'password'} value={form.password}
@@ -307,10 +310,10 @@ function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void
           </div>
         </div>
         <div className="p-6 border-t border-gray-100 flex gap-3 justify-end">
-          <button onClick={onClose} className="px-4 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">Annuler</button>
+          <button onClick={onClose} className="px-4 py-2.5 text-sm border border-gray-200 rounded-xl hover:bg-gray-50 transition-colors">{t('editCancel')}</button>
           <button onClick={handleSave} disabled={saving}
             className="px-6 py-2.5 bg-emerald-700 text-white rounded-xl text-sm font-medium hover:bg-emerald-800 disabled:opacity-40 transition-colors">
-            {saving ? '⏳' : '💾 Sauvegarder'}
+            {saving ? '⏳' : `💾 ${t('editSubmit')}`}
           </button>
         </div>
       </div>
@@ -321,6 +324,7 @@ function EditModal({ user, onClose, onSaved }: { user: User; onClose: () => void
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function TeamPage() {
+  const t = useTranslations('team');
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
   const [showInvite, setShowInvite] = useState(false);
@@ -382,7 +386,7 @@ export default function TeamPage() {
   }
 
   async function deleteUser(user: User) {
-    if (!confirm(`Supprimer ${user.name} définitivement ?`)) return;
+    if (!confirm(`${t('deleteConfirm')} ${user.name} ${t('deleteUserConfirm')}`)) return;
     const res = await fetch(`/api/team/${user.id}`, { method: 'DELETE' });
     const data = await res.json();
     if (!res.ok) { alert(data.error); return; }
@@ -414,7 +418,7 @@ export default function TeamPage() {
       {activeTab === 'permissions' && (
         <div className="space-y-6">
           <div>
-            <h2 className="text-xl font-bold text-gray-900">Permissions par rôle</h2>
+            <h2 className="text-xl font-bold text-gray-900">{t('permissionsByRole')}</h2>
             <p className="text-sm text-gray-500 mt-1">Activez ou désactivez les permissions pour chaque rôle. Les permissions Admin sont fixes.</p>
           </div>
 
@@ -432,7 +436,7 @@ export default function TeamPage() {
                   <div className="flex flex-col items-center gap-1">
                     <span className="text-lg">👑</span>
                     <span className="text-xs font-semibold text-yellow-700">Admin</span>
-                    <span className="text-xs text-gray-400 bg-yellow-50 border border-yellow-100 rounded-full px-2 py-0.5">Tout accès</span>
+                    <span className="text-xs text-gray-400 bg-yellow-50 border border-yellow-100 rounded-full px-2 py-0.5">{t('permissionsAllAccess')}</span>
                   </div>
                 </div>
                 {NON_ADMIN_ROLES.map(r => (
@@ -487,12 +491,12 @@ export default function TeamPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion d&apos;équipe</h1>
-          <p className="text-gray-400 text-sm mt-1">{activeUsers.length} membre{activeUsers.length !== 1 ? 's' : ''} actif{activeUsers.length !== 1 ? 's' : ''}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-400 text-sm mt-1">{activeUsers.length} {t('activeMembers')}</p>
         </div>
         <button onClick={() => setShowInvite(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white rounded-xl font-medium text-sm hover:bg-emerald-800 transition-colors shadow-sm">
-          ✚ Ajouter un membre
+          ✚ {t('add')}
         </button>
       </div>
 
@@ -517,24 +521,24 @@ export default function TeamPage() {
 
       {/* Team list */}
       {loading ? (
-        <div className="text-center py-16 text-gray-400">Chargement…</div>
+        <div className="text-center py-16 text-gray-400">{t('never')}…</div>
       ) : (
         <div className="space-y-6">
           {/* Active */}
           <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden">
             <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-              <h2 className="font-semibold text-gray-700 text-sm">Membres actifs — {activeUsers.length}</h2>
+              <h2 className="font-semibold text-gray-700 text-sm">{t('activeTab')} — {activeUsers.length}</h2>
             </div>
             {activeUsers.length === 0 ? (
-              <div className="text-center py-10 text-gray-400 text-sm">Aucun membre actif</div>
+              <div className="text-center py-10 text-gray-400 text-sm">{t('noActiveMembers')}</div>
             ) : (
               <table className="w-full">
                 <thead>
                   <tr className="text-xs font-semibold text-gray-400 uppercase tracking-wide border-b border-gray-50">
-                    <th className="px-6 py-3 text-left">Membre</th>
-                    <th className="px-6 py-3 text-left">Rôle</th>
-                    <th className="px-6 py-3 text-left">Ajouté le</th>
-                    <th className="px-6 py-3 text-left">Dernière connexion</th>
+                    <th className="px-6 py-3 text-left">{t('colMember')}</th>
+                    <th className="px-6 py-3 text-left">{t('colRole')}</th>
+                    <th className="px-6 py-3 text-left">{t('colAdded')}</th>
+                    <th className="px-6 py-3 text-left">{t('colLastLogin')}</th>
                     <th className="px-6 py-3"></th>
                   </tr>
                 </thead>
@@ -562,17 +566,17 @@ export default function TeamPage() {
                           {user.created_at ? new Date(user.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                         </td>
                         <td className="px-6 py-4 text-xs text-gray-400">
-                          {user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : 'Jamais'}
+                          {user.last_login ? new Date(user.last_login).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : t('never')}
                         </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-1 justify-end">
                             <button onClick={() => setEditing(user)}
                               className="px-3 py-1.5 text-xs text-gray-600 hover:bg-gray-100 rounded-lg transition-colors">
-                              ✏️ Modifier
+                              ✏️ {t('edit')}
                             </button>
                             <button onClick={() => toggleActive(user)}
                               className="px-3 py-1.5 text-xs text-orange-600 hover:bg-orange-50 rounded-lg transition-colors">
-                              ⏸ Désactiver
+                              ⏸ {t('disable')}
                             </button>
                             <button onClick={() => deleteUser(user)}
                               className="px-3 py-1.5 text-xs text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors">
@@ -592,7 +596,7 @@ export default function TeamPage() {
           {inactiveUsers.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden opacity-70">
               <div className="px-6 py-4 border-b border-gray-100 bg-gray-50">
-                <h2 className="font-semibold text-gray-500 text-sm">Membres désactivés — {inactiveUsers.length}</h2>
+                <h2 className="font-semibold text-gray-500 text-sm">{t('inactiveTab')} — {inactiveUsers.length}</h2>
               </div>
               <table className="w-full">
                 <tbody className="divide-y divide-gray-50">
@@ -618,7 +622,7 @@ export default function TeamPage() {
                           <div className="flex gap-1 justify-end">
                             <button onClick={() => toggleActive(user)}
                               className="px-3 py-1.5 text-xs text-green-600 hover:bg-green-50 rounded-lg transition-colors">
-                              ▶ Réactiver
+                              ▶ {t('reactivate')}
                             </button>
                             <button onClick={() => deleteUser(user)}
                               className="px-3 py-1.5 text-xs text-emerald-500 hover:bg-emerald-50 rounded-lg transition-colors">

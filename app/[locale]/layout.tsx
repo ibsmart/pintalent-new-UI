@@ -6,9 +6,9 @@ import { routing } from '@/i18n/routing';
 export default async function LocaleLayout({ children, params }: { children: React.ReactNode; params: Promise<{ locale: string }> }) {
   const { locale } = await params;
   if (!routing.locales.includes(locale as 'fr' | 'en')) notFound();
-  const messages = await getMessages();
+  const messages = await getMessages({ locale });
   return (
-    <NextIntlClientProvider messages={messages}>
+    <NextIntlClientProvider locale={locale} messages={messages}>
       {children}
     </NextIntlClientProvider>
   );

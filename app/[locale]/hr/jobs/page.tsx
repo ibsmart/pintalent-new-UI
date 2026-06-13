@@ -3,6 +3,7 @@
 import { useEffect, useState, useRef } from 'react';
 import Link from 'next/link';
 import { usePermissions } from '@/lib/permissions-context';
+import { useTranslations } from 'next-intl';
 
 interface Job {
   id: string;
@@ -53,6 +54,7 @@ const EMPTY_FORM: JobFormData = {
 };
 
 export default function JobsPage() {
+  const t = useTranslations('jobs');
   const { can } = usePermissions();
   const [jobs, setJobs] = useState<Job[]>([]);
   const [loading, setLoading] = useState(true);
@@ -60,6 +62,7 @@ export default function JobsPage() {
   const [editing, setEditing] = useState<Job | null>(null);
   const [form, setForm] = useState<JobFormData>(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
+  const [generating, setGenerating] = useState(false);
   const [search, setSearch] = useState('');
 
   // Import state
@@ -72,7 +75,6 @@ export default function JobsPage() {
   const [importError, setImportError] = useState('');
   const [importSaving, setImportSaving] = useState(false);
   const [importSuccess, setImportSuccess] = useState(0);
-  // Editing a single job inside the preview
   const [editingPreviewIdx, setEditingPreviewIdx] = useState<number | null>(null);
   const [editingPreviewForm, setEditingPreviewForm] = useState<ParsedJob | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -126,6 +128,38 @@ export default function JobsPage() {
 
   useEffect(() => { loadJobs(); }, []);
 
+  async function generateWithAI() {
+    if (!form.title.trim()) return;
+    setGenerating(true);
+    try {
+      const res = await fetch('/api/jobs/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: form.title,
+          department: form.department,
+          location: form.location,
+          contract_type: form.contract_type,
+          experience: form.experience,
+          education: form.education,
+        }),
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setForm(f => ({
+          ...f,
+          description: data.description || f.description,
+          missions: data.missions || f.missions,
+          profile: data.profile || f.profile,
+          keywords: data.keywords || f.keywords,
+        }));
+      }
+    } catch (e) {
+      console.error('Generate error:', e);
+    }
+    setGenerating(false);
+  }
+
   function openNew() { setEditing(null); setForm(EMPTY_FORM); setShowForm(true); }
 
   function openEdit(job: Job) {
@@ -161,12 +195,11 @@ export default function JobsPage() {
   }
 
   async function deleteJob(job: Job) {
-    if (!confirm(`Supprimer le poste "${job.title}" ?`)) return;
+    if (!confirm(`${t('deleteConfirm')} "${job.title}" ?`)) return;
     await fetch(`/api/jobs/${job.id}`, { method: 'DELETE' });
     loadJobs();
   }
 
-  // --- Import ---
   function openImport() {
     setImportFile(null); setImportPreview(null); setImportError('');
     setImportSuccess(0); setImportCapped(false); setShowImport(true);
@@ -175,7 +208,7 @@ export default function JobsPage() {
   function handleImportFileDrop(f: File) {
     const ext = f.name.split('.').pop()?.toLowerCase() || '';
     if (!['xlsx', 'xls', 'docx', 'doc'].includes(ext)) {
-      setImportError('Format non supporté. Utilisez .xlsx, .xls, .docx ou .doc'); return;
+      setImportError(t('importFormatError')); return;
     }
     setImportError(''); setImportPreview(null); setImportFile(f);
   }
@@ -188,11 +221,11 @@ export default function JobsPage() {
       fd.append('file', importFile);
       const res = await fetch('/api/jobs/import', { method: 'POST', body: fd });
       const data = await res.json();
-      if (!res.ok) { setImportError(data.error || 'Erreur lors de l\'analyse'); return; }
+      if (!res.ok) { setImportError(data.error || t('importAnalysisError')); return; }
       setImportPreview(data.jobs);
       setImportCapped(!!data.capped);
     } catch {
-      setImportError('Erreur réseau');
+      setImportError(t('importNetworkError'));
     } finally {
       setImportParsing(false);
     }
@@ -208,12 +241,12 @@ export default function JobsPage() {
         body: JSON.stringify({ jobs: importPreview }),
       });
       const data = await res.json();
-      if (!res.ok) { setImportError(data.error || 'Erreur lors de l\'import'); return; }
+      if (!res.ok) { setImportError(data.error || t('importError')); return; }
       setImportSuccess(data.inserted);
       setImportPreview(null); setImportFile(null);
       loadJobs();
     } catch {
-      setImportError('Erreur réseau');
+      setImportError(t('importNetworkError'));
     } finally {
       setImportSaving(false);
     }
@@ -241,20 +274,20 @@ export default function JobsPage() {
     <div className="p-8 space-y-6">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Gestion des offres</h1>
-          <p className="text-gray-500 text-sm mt-1">{jobs.filter(j => j.status === 'active').length} postes actifs sur {jobs.length}</p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-500 text-sm mt-1">{jobs.filter(j => j.status === 'active').length} {t('activeOn')} {jobs.length}</p>
         </div>
         <div className="flex items-center gap-3">
           {can('jobs.create') && (
             <button onClick={openImport}
               className="border border-gray-200 bg-white text-gray-700 px-5 py-2.5 rounded-xl font-medium hover:bg-gray-50 transition-colors flex items-center gap-2 text-sm">
-              📥 Importer
+              📥 {t('import')}
             </button>
           )}
           {can('jobs.create') && (
             <button onClick={openNew}
               className="bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-800 transition-colors flex items-center gap-2 text-sm">
-              + Nouvelle offre
+              {t('add')}
             </button>
           )}
         </div>
@@ -262,7 +295,7 @@ export default function JobsPage() {
 
       {/* Search */}
       <div className="bg-white rounded-2xl border border-gray-100 p-4">
-        <input type="text" placeholder="🔍 Rechercher un poste..." value={search} onChange={e => setSearch(e.target.value)}
+        <input type="text" placeholder={`🔍 ${t('search')}`} value={search} onChange={e => setSearch(e.target.value)}
           className="w-full max-w-md border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
       </div>
 
@@ -276,11 +309,11 @@ export default function JobsPage() {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-100">
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Poste</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Département</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Contrat</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Candidatures</th>
-                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colJob')}</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colDept')}</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colContract')}</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colApplications')}</th>
+                <th className="text-left px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colStatus')}</th>
                 <th className="px-6 py-4"></th>
               </tr>
             </thead>
@@ -296,13 +329,13 @@ export default function JobsPage() {
                   <td className="px-6 py-4">
                     <Link href={`/hr/candidates?job_id=${job.id}`} className="flex items-center gap-2 hover:text-emerald-700">
                       <span className="text-lg font-bold text-gray-900">{job.application_count}</span>
-                      {job.application_count > 0 && <span className="text-xs text-gray-400">moy. {job.avg_score}/100</span>}
+                      {job.application_count > 0 && <span className="text-xs text-gray-400">{t('avgShort')} {job.avg_score}/100</span>}
                     </Link>
                   </td>
                   <td className="px-6 py-4">
                     <button onClick={() => toggleStatus(job)}
                       className={`text-xs font-medium px-3 py-1 rounded-full border transition-colors ${job.status === 'active' ? 'bg-green-50 text-green-700 border-green-200 hover:bg-green-100' : 'bg-gray-50 text-gray-500 border-gray-200 hover:bg-gray-100'}`}>
-                      {job.status === 'active' ? '● Actif' : '○ Inactif'}
+                      {job.status === 'active' ? `● ${t('statusActive')}` : `○ ${t('statusInactive')}`}
                     </button>
                   </td>
                   <td className="px-6 py-4">
@@ -334,8 +367,8 @@ export default function JobsPage() {
           <div className="bg-white rounded-2xl shadow-xl w-full max-w-2xl p-6 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4 flex-shrink-0">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">🎯 Matching — {matchingJobTitle}</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Candidats de la base classés par compatibilité avec cette offre</p>
+                <h2 className="text-lg font-bold text-gray-900">🎯 {t('matchingTitle')} — {matchingJobTitle}</h2>
+                <p className="text-xs text-gray-400 mt-0.5">{t('matchingSubtitle')}</p>
               </div>
               <button onClick={() => setMatchingJobId(null)} className="text-gray-400 hover:text-gray-600 text-xl px-2">✕</button>
             </div>
@@ -344,13 +377,12 @@ export default function JobsPage() {
               {matchLoading ? (
                 <div className="text-center py-16">
                   <div className="animate-spin w-10 h-10 rounded-full mx-auto mb-4" style={{ border: '3px solid #9333ea30', borderTopColor: '#9333ea' }} />
-                  <p className="text-gray-500 text-sm">Pintalent analyse tous les candidats en base…</p>
+                  <p className="text-gray-500 text-sm">{t('matchingAnalyzing')}</p>
                 </div>
               ) : matchResults.length === 0 ? (
                 <div className="text-center py-12 text-gray-400">
                   <div className="text-4xl mb-3">👥</div>
-                  <p className="text-sm">Aucun candidat avec CV disponible dans la base.</p>
-                  <p className="text-xs mt-1 text-gray-300">Ajoutez des candidats avec leur CV pour activer le matching.</p>
+                  <p className="text-sm">{t('matchingNoResults')}</p>
                 </div>
               ) : (
                 <div className="space-y-3">
@@ -377,7 +409,7 @@ export default function JobsPage() {
                           </div>
                           {attachedIds.has(r.candidate_id) ? (
                             <div className="flex items-center gap-1 px-3 py-1.5 bg-green-100 text-green-700 rounded-lg text-xs font-semibold">
-                              ✓ Rattaché
+                              ✓ {t('matchingAttached')}
                             </div>
                           ) : (
                             <button
@@ -385,7 +417,7 @@ export default function JobsPage() {
                               disabled={attachingIds.has(r.candidate_id)}
                               className="flex items-center gap-1 px-3 py-1.5 bg-emerald-700 hover:bg-emerald-800 disabled:opacity-50 text-white rounded-lg text-xs font-semibold transition-colors whitespace-nowrap"
                             >
-                              {attachingIds.has(r.candidate_id) ? '⏳' : '+ Rattacher'}
+                              {attachingIds.has(r.candidate_id) ? '⏳' : t('matchingAttach')}
                             </button>
                           )}
                         </div>
@@ -409,8 +441,8 @@ export default function JobsPage() {
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-4xl my-8">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
               <div>
-                <h2 className="text-xl font-bold text-gray-900">Importer des offres</h2>
-                <p className="text-sm text-gray-500 mt-0.5">L&apos;IA génère automatiquement les fiches complètes à partir des titres</p>
+                <h2 className="text-xl font-bold text-gray-900">{t('importTitle')}</h2>
+                <p className="text-sm text-gray-500 mt-0.5">{t('importAiSubtitle')}</p>
               </div>
               <button onClick={() => setShowImport(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
             </div>
@@ -425,8 +457,8 @@ export default function JobsPage() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
                     </svg>
                   </div>
-                  <p className="text-lg font-semibold text-gray-900">{importSuccess} offre{importSuccess > 1 ? 's' : ''} importée{importSuccess > 1 ? 's' : ''} avec succès</p>
-                  <button onClick={() => setShowImport(false)} className="mt-6 bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-emerald-800 text-sm">Fermer</button>
+                  <p className="text-lg font-semibold text-gray-900">{importSuccess} {t('importSuccessMsg')}</p>
+                  <button onClick={() => setShowImport(false)} className="mt-6 bg-emerald-700 text-white px-6 py-2.5 rounded-xl font-medium hover:bg-emerald-800 text-sm">{t('importClose')}</button>
                 </div>
 
               ) : editingPreviewIdx !== null && editingPreviewForm ? (
@@ -434,70 +466,70 @@ export default function JobsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center gap-3 pb-2 border-b border-gray-100">
                     <button onClick={() => { setEditingPreviewIdx(null); setEditingPreviewForm(null); }}
-                      className="text-sm text-gray-500 hover:text-gray-700">← Retour</button>
-                    <h3 className="font-semibold text-gray-900">Modifier : {editingPreviewForm.title}</h3>
+                      className="text-sm text-gray-500 hover:text-gray-700">← {t('importBack')}</button>
+                    <h3 className="font-semibold text-gray-900">{t('formEditInline')} {editingPreviewForm.title}</h3>
                   </div>
                   <div className="grid grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto pr-1">
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Intitulé du poste</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formTitle')}</label>
                       <input value={editingPreviewForm.title} onChange={e => setEditingPreviewForm(f => f && ({...f, title: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Département</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formDept')}</label>
                       <select value={editingPreviewForm.department} onChange={e => setEditingPreviewForm(f => f && ({...f, department: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                         {DEPARTMENTS.map(d => <option key={d}>{d}</option>)}
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Localisation</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formLocation')}</label>
                       <input value={editingPreviewForm.location} onChange={e => setEditingPreviewForm(f => f && ({...f, location: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Contrat</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formContract')}</label>
                       <select value={editingPreviewForm.contract_type} onChange={e => setEditingPreviewForm(f => f && ({...f, contract_type: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                         <option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option>
                       </select>
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Expérience</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formExperience')}</label>
                       <input value={editingPreviewForm.experience} onChange={e => setEditingPreviewForm(f => f && ({...f, experience: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Formation</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formEducation')}</label>
                       <input value={editingPreviewForm.education} onChange={e => setEditingPreviewForm(f => f && ({...f, education: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Description</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formDescription')}</label>
                       <textarea value={editingPreviewForm.description} onChange={e => setEditingPreviewForm(f => f && ({...f, description: e.target.value}))}
                         rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Missions</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formMissions')}</label>
                       <textarea value={editingPreviewForm.missions} onChange={e => setEditingPreviewForm(f => f && ({...f, missions: e.target.value}))}
                         rows={4} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Profil recherché</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formProfile')}</label>
                       <textarea value={editingPreviewForm.profile} onChange={e => setEditingPreviewForm(f => f && ({...f, profile: e.target.value}))}
                         rows={3} className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                     </div>
                     <div className="col-span-2">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Compétences clés</label>
+                      <label className="block text-xs font-medium text-gray-600 mb-1">{t('formSkills')}</label>
                       <input value={editingPreviewForm.keywords} onChange={e => setEditingPreviewForm(f => f && ({...f, keywords: e.target.value}))}
                         className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                     </div>
                   </div>
                   <div className="flex justify-end gap-3 pt-2 border-t border-gray-100">
                     <button onClick={() => { setEditingPreviewIdx(null); setEditingPreviewForm(null); }}
-                      className="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm">Annuler</button>
+                      className="px-4 py-2 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm">{t('formCancel')}</button>
                     <button onClick={saveEditPreview}
-                      className="bg-emerald-700 text-white px-5 py-2 rounded-xl font-medium hover:bg-emerald-800 text-sm">Enregistrer</button>
+                      className="bg-emerald-700 text-white px-5 py-2 rounded-xl font-medium hover:bg-emerald-800 text-sm">{t('formSave')}</button>
                   </div>
                 </div>
 
@@ -506,19 +538,19 @@ export default function JobsPage() {
                 <div className="space-y-4">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="font-semibold text-gray-900">{importPreview.length} offre{importPreview.length > 1 ? 's' : ''} générée{importPreview.length > 1 ? 's' : ''}</p>
-                      {importCapped && <p className="text-xs text-amber-600 mt-0.5">⚠ Limité aux 30 premiers postes</p>}
+                      <p className="font-semibold text-gray-900">{importPreview.length} {t('importCount')}</p>
+                      {importCapped && <p className="text-xs text-amber-600 mt-0.5">⚠ {t('importCappedWarning')}</p>}
                     </div>
-                    <button onClick={() => { setImportPreview(null); setImportFile(null); }} className="text-sm text-gray-400 hover:text-gray-600 underline">← Recommencer</button>
+                    <button onClick={() => { setImportPreview(null); setImportFile(null); }} className="text-sm text-gray-400 hover:text-gray-600 underline">← {t('importBack')}</button>
                   </div>
                   <div className="border border-gray-100 rounded-xl overflow-hidden max-h-96 overflow-y-auto">
                     <table className="w-full text-sm">
                       <thead className="bg-gray-50 sticky top-0 z-10">
                         <tr>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Poste</th>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Département</th>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Contrat</th>
-                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">Expérience</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('colJob')}</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('colDept')}</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('colContract')}</th>
+                          <th className="text-left px-4 py-3 text-xs font-semibold text-gray-500 uppercase">{t('formExperience')}</th>
                           <th className="px-4 py-3"></th>
                         </tr>
                       </thead>
@@ -534,7 +566,7 @@ export default function JobsPage() {
                             <td className="px-4 py-3 text-gray-500 text-xs">{job.experience}</td>
                             <td className="px-4 py-3">
                               <button onClick={() => startEditPreview(i)}
-                                className="text-xs text-gray-400 hover:text-emerald-600 px-2 py-1 rounded hover:bg-emerald-50 transition-colors">✏️ Modifier</button>
+                                className="text-xs text-gray-400 hover:text-emerald-600 px-2 py-1 rounded hover:bg-emerald-50 transition-colors">✏️ {t('formEdit')}</button>
                             </td>
                           </tr>
                         ))}
@@ -545,8 +577,8 @@ export default function JobsPage() {
                   <button onClick={confirmImport} disabled={importSaving}
                     className="w-full bg-emerald-700 text-white py-3 rounded-xl font-semibold hover:bg-emerald-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                     {importSaving
-                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Importation...</>
-                      : `✅ Importer ${importPreview.length} offre${importPreview.length > 1 ? 's' : ''}`}
+                      ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('importingLabel')}</>
+                      : `✅ ${t('importConfirm')} (${importPreview.length})`}
                   </button>
                 </div>
 
@@ -567,12 +599,12 @@ export default function JobsPage() {
                         <div className="text-3xl">{importFile.name.match(/\.(docx?)/i) ? '📄' : '📊'}</div>
                         <p className="font-semibold text-gray-900">{importFile.name}</p>
                         <p className="text-sm text-gray-500">{(importFile.size / 1024).toFixed(0)} Ko</p>
-                        <button type="button" onClick={e => { e.stopPropagation(); setImportFile(null); }} className="text-xs text-gray-400 hover:text-emerald-500 underline">Changer</button>
+                        <button type="button" onClick={e => { e.stopPropagation(); setImportFile(null); }} className="text-xs text-gray-400 hover:text-emerald-500 underline">{t('importChange')}</button>
                       </div>
                     ) : (
                       <div className="space-y-3">
                         <div className="text-4xl">📥</div>
-                        <p className="font-semibold text-gray-700">Glissez votre fichier ici ou cliquez</p>
+                        <p className="font-semibold text-gray-700">{t('importDrop')}</p>
                         <div className="flex items-center justify-center gap-3 mt-2">
                           <span className="bg-green-100 text-green-700 text-xs px-3 py-1 rounded-full font-medium">📊 Excel .xlsx .xls</span>
                           <span className="bg-blue-100 text-blue-700 text-xs px-3 py-1 rounded-full font-medium">📄 Word .docx .doc</span>
@@ -582,9 +614,8 @@ export default function JobsPage() {
                   </div>
 
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-4 text-xs text-blue-800 space-y-1">
-                    <p className="font-semibold">✨ Génération automatique par IA</p>
-                    <p>Il suffit d&apos;avoir une colonne <span className="font-mono bg-white px-1 rounded border border-blue-200">titre</span> dans Excel, ou une liste de noms de postes dans Word.</p>
-                    <p>Pintalent génère automatiquement : description, missions, profil, compétences, expérience. Vous pouvez tout ajuster avant de sauvegarder.</p>
+                    <p className="font-semibold">✨ {t('importAiTitle')}</p>
+                    <p>{t('importAiDesc')}</p>
                   </div>
 
                   {importError && <div className="bg-emerald-50 border border-emerald-200 rounded-xl px-4 py-3 text-sm text-emerald-700">{importError}</div>}
@@ -593,8 +624,8 @@ export default function JobsPage() {
                     <button onClick={parseAndGenerate} disabled={importParsing}
                       className="w-full bg-emerald-700 text-white py-3 rounded-xl font-medium hover:bg-emerald-800 disabled:opacity-50 transition-colors flex items-center justify-center gap-2">
                       {importParsing
-                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> Génération des fiches en cours...</>
-                        : '✨ Analyser et générer les fiches'}
+                        ? <><div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div> {t('importAnalyzing')}</>
+                        : `✨ ${t('importAnalyzeBtn')}`}
                     </button>
                   )}
                 </>
@@ -609,82 +640,108 @@ export default function JobsPage() {
         <div className="fixed inset-0 bg-black/50 z-50 flex items-start justify-center p-4 overflow-y-auto">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl my-8">
             <div className="p-6 border-b border-gray-100 flex items-center justify-between">
-              <h2 className="text-xl font-bold text-gray-900">{editing ? 'Modifier l\'offre' : 'Nouvelle offre'}</h2>
+              <h2 className="text-xl font-bold text-gray-900">{editing ? t('formEdit') : t('formAdd')}</h2>
               <button onClick={() => setShowForm(false)} className="text-gray-400 hover:text-gray-600 text-2xl leading-none">×</button>
             </div>
             <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Intitulé du poste <span className="text-emerald-500">*</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formTitle')} <span className="text-emerald-500">*</span></label>
                   <input type="text" value={form.title} onChange={e => setForm(f => ({...f, title: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Département <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formDept')}</label>
                   <select value={form.department} onChange={e => setForm(f => ({...f, department: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
                     {DEPARTMENTS.map(d => <option key={d} value={d}>{d}</option>)}
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Localisation <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formLocation')}</label>
                   <input type="text" value={form.location} onChange={e => setForm(f => ({...f, location: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type de contrat <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formContract')}</label>
                   <select value={form.contract_type} onChange={e => setForm(f => ({...f, contract_type: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                    <option value="">— Non précisé</option>
+                    <option value="">{t('formNotSpecified')}</option>
                     <option>CDI</option><option>CDD</option><option>Stage</option><option>Freelance</option>
                   </select>
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expérience <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formExperience')}</label>
                   <input type="text" value={form.experience} onChange={e => setForm(f => ({...f, experience: e.target.value}))}
                     placeholder="ex: 5-8 ans" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Formation <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formEducation')}</label>
                   <input type="text" value={form.education} onChange={e => setForm(f => ({...f, education: e.target.value}))}
                     placeholder="ex: Bac+5" className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
+                {/* AI Generation button */}
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Description <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <div className="flex items-center gap-3 py-1">
+                    <div className="flex-1 border-t border-dashed border-gray-200" />
+                    <button
+                      type="button"
+                      onClick={generateWithAI}
+                      disabled={generating || !form.title.trim()}
+                      className="flex items-center gap-2 px-4 py-2 bg-violet-600 hover:bg-violet-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm font-semibold rounded-xl transition-colors shadow-sm"
+                    >
+                      {generating ? (
+                        <>
+                          <span className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full inline-block" />
+                          {t('formGenerating')}
+                        </>
+                      ) : (
+                        <>
+                          <span>✨</span>
+                          {t('formGenerateAI')}
+                        </>
+                      )}
+                    </button>
+                    <div className="flex-1 border-t border-dashed border-gray-200" />
+                  </div>
+                </div>
+
+                <div className="col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formDescription')}</label>
                   <textarea value={form.description} onChange={e => setForm(f => ({...f, description: e.target.value}))}
                     rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Missions <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formMissions')}</label>
                   <textarea value={form.missions} onChange={e => setForm(f => ({...f, missions: e.target.value}))}
                     rows={4} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Profil recherché <span className="text-gray-400 font-normal text-xs">(optionnel)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formProfile')}</label>
                   <textarea value={form.profile} onChange={e => setForm(f => ({...f, profile: e.target.value}))}
                     rows={3} className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none" />
                 </div>
                 <div className="col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Compétences clés <span className="text-gray-400 font-normal text-xs">(optionnel — séparées par des virgules)</span></label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formSkills')}</label>
                   <input type="text" value={form.keywords} onChange={e => setForm(f => ({...f, keywords: e.target.value}))}
                     placeholder="Python, SQL, Machine Learning..." className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
                 </div>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Statut</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">{t('formStatus')}</label>
                   <select value={form.status} onChange={e => setForm(f => ({...f, status: e.target.value}))}
                     className="w-full border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-                    <option value="active">Actif</option>
-                    <option value="inactive">Inactif</option>
+                    <option value="active">{t('formStatusActive')}</option>
+                    <option value="inactive">{t('formStatusInactive')}</option>
                   </select>
                 </div>
               </div>
             </div>
             <div className="p-6 border-t border-gray-100 flex justify-end gap-3">
               <button onClick={() => setShowForm(false)}
-                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium">Annuler</button>
+                className="px-5 py-2.5 border border-gray-200 rounded-xl text-gray-600 hover:bg-gray-50 text-sm font-medium">{t('formCancel')}</button>
               <button onClick={handleSave} disabled={saving || !form.title.trim()}
                 className="bg-emerald-700 text-white px-5 py-2.5 rounded-xl font-medium hover:bg-emerald-800 disabled:opacity-50 text-sm">
-                {saving ? 'Enregistrement...' : editing ? 'Enregistrer' : 'Créer l\'offre'}
+                {saving ? '...' : t('formSave')}
               </button>
             </div>
           </div>

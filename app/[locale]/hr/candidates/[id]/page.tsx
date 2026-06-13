@@ -4,6 +4,7 @@ import { useEffect, useState, use } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { usePermissions } from '@/lib/permissions-context';
+import { useTranslations } from 'next-intl';
 
 interface AppDetail {
   id: string;
@@ -55,6 +56,8 @@ interface MatchResult {
 }
 
 export default function CandidateDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  const t = useTranslations('candidateDetail');
+  const tStages = useTranslations('stages');
   const { can } = usePermissions();
   const { id } = use(params);
   const [app, setApp] = useState<AppDetail | null>(null);
@@ -66,7 +69,9 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
   const [matchResults, setMatchResults] = useState<MatchResult[] | null>(null);
   const [matching, setMatching] = useState(false);
   const [attaching, setAttaching] = useState<string | null>(null);
+  const [attachingBulk, setAttachingBulk] = useState(false);
   const [attached, setAttached] = useState<Set<string>>(new Set());
+  const [selectedToAttach, setSelectedToAttach] = useState<Set<string>>(new Set());
   // Job selection for matching
   const [allJobs, setAllJobs] = useState<{ id: string; title: string; department: string; contract_type: string }[]>([]);
   const [selectedJobIds, setSelectedJobIds] = useState<Set<string>>(new Set());
@@ -77,7 +82,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
   const [savingName, setSavingName] = useState(false);
   const [savingPretentions, setSavingPretentions] = useState(false);
   const [savedPretentions, setSavedPretentions] = useState(false);
-  const [allApplications, setAllApplications] = useState<{ id: string; job_title: string; department: string; pipeline_stage: string; score: number; created_at: string }[]>([]);
+  const [allApplications, setAllApplications] = useState<{ id: string; job_id: string; job_title: string; department: string; pipeline_stage: string; score: number; created_at: string }[]>([]);
   const [matchError, setMatchError] = useState<string | null>(null);
   const [showExportModal, setShowExportModal] = useState(false);
   const [cvTemplates, setCvTemplates] = useState<{ id: string; name: string; company_name: string }[]>([]);
@@ -168,17 +173,17 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
   }
 
   async function deleteApp() {
-    if (!confirm('Supprimer cette candidature ?')) return;
+    if (!confirm(t('deleteAppConfirm'))) return;
     await fetch(`/api/applications/${id}`, { method: 'DELETE' });
     router.push('/hr/candidates');
   }
 
   async function deleteCandidate() {
     if (!app) return;
-    if (!confirm(`Supprimer définitivement ${app.name} ? Le candidat et toutes ses candidatures seront supprimés.`)) return;
+    if (!confirm(`${t('deleteConfirm')} ${app.name} ? ${t('deleteFullConfirm')}`)) return;
     const res = await fetch(`/api/candidates/${app.candidate_id}`, { method: 'DELETE' });
     if (res.ok) router.push('/hr/candidates');
-    else alert('Erreur lors de la suppression');
+    else alert(t('toastError'));
   }
 
   if (loading) return (
@@ -191,8 +196,8 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
     <div className="flex items-center justify-center h-screen">
       <div className="text-center">
         <div className="text-4xl mb-3">😕</div>
-        <div>Candidature introuvable</div>
-        <Link href="/hr/candidates" className="text-emerald-600 hover:underline text-sm mt-2 block">← Retour</Link>
+        <div>{t('notFound')}</div>
+        <Link href="/hr/candidates" className="text-emerald-600 hover:underline text-sm mt-2 block">← {t('notFoundBack')}</Link>
       </div>
     </div>
   );
@@ -218,7 +223,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ candidate_id: app.candidate_id, format: exportFormat }),
       });
-      if (!res.ok) throw new Error('Erreur génération');
+      if (!res.ok) throw new Error(t('exportError'));
       const blob = await res.blob();
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
@@ -228,7 +233,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
       URL.revokeObjectURL(url);
       setShowExportModal(false);
     } catch {
-      alert('Erreur lors de la génération du CV');
+      alert(t('exportError'));
     }
     setExporting(false);
   }
@@ -251,7 +256,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
       clearTimeout(timeout);
       const data = await res.json();
       if (!res.ok) {
-        setMatchError(data.error || `Erreur serveur (${res.status})`);
+        setMatchError(data.error || `${t('matchingServerError')} (${res.status})`);
         setMatchResults([]);
       } else if (data.message) {
         setMatchError(data.message);
@@ -260,31 +265,67 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         const results: MatchResult[] = data.results || [];
         setMatchResults(results);
         if (results.length === 0) {
-          setMatchError('Aucun résultat — le CV est peut-être vide ou non extractible.');
-        } else if (jobIds && jobIds.length === 1 && app.id) {
-          // Single-job rerun: save score + synthèse directly on the existing application
+          setMatchError(t('matchingNoResults'));
+        } else if (jobIds && jobIds.length === 1 && app.candidate_id) {
+          // Single-job rerun: update the application for THAT specific job, not the currently viewed one
           const match = results.find(r => r.job_id === jobIds[0]);
           if (match) {
-            await fetch(`/api/applications/${app.id}`, {
-              method: 'PATCH',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                score: match.score,
-                recommendation: match.recommendation,
-                score_summary: match.reason,
-              }),
-            });
-            // Refresh app data so Analyse IA tab reflects new values
-            const fresh = await fetch(`/api/applications/${app.id}`).then(r => r.json());
-            setApp(fresh);
+            const targetAppId = allApplications.find(a => a.job_id === jobIds[0])?.id;
+            const appIdToUpdate = targetAppId || (app.job_id === jobIds[0] ? app.id : null);
+
+            if (appIdToUpdate) {
+              await fetch(`/api/applications/${appIdToUpdate}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                  score: match.score,
+                  recommendation: match.recommendation,
+                  score_summary: match.reason,
+                }),
+              });
+              // Refresh current view only if we updated the currently viewed application
+              if (appIdToUpdate === app.id) {
+                const fresh = await fetch(`/api/applications/${app.id}`).then(r => r.json());
+                setApp(fresh);
+              }
+            }
+
+            // Always refresh sidebar list
+            const updatedList = await fetch(`/api/applications?candidate_id=${app.candidate_id}`).then(r => r.json()).catch(() => []);
+            setAllApplications(Array.isArray(updatedList) ? updatedList : []);
           }
         }
       }
     } catch (e) {
-      setMatchError(e instanceof Error ? e.message : 'Erreur réseau ou timeout');
+      setMatchError(e instanceof Error ? e.message : t('matchingTimeout'));
       setMatchResults([]);
     }
     setMatching(false);
+  }
+
+  async function attachMultiple() {
+    if (!app || selectedToAttach.size === 0 || !matchResults) return;
+    setAttachingBulk(true);
+    const toAttach = matchResults.filter(r => selectedToAttach.has(r.job_id) && !attached.has(r.job_id));
+    await Promise.all(toAttach.map(r =>
+      fetch('/api/applications', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          candidate_id: app.candidate_id,
+          job_id: r.job_id,
+          pipeline_stage: 'Présélectionné',
+          score: r.score,
+          recommendation: r.recommendation,
+          score_summary: r.reason || null,
+        }),
+      })
+    ));
+    setAttached(prev => { const n = new Set(prev); toAttach.forEach(r => n.add(r.job_id)); return n; });
+    setSelectedToAttach(new Set());
+    const updatedList = await fetch(`/api/applications?candidate_id=${app.candidate_id}`).then(r => r.json()).catch(() => []);
+    setAllApplications(Array.isArray(updatedList) ? updatedList : []);
+    setAttachingBulk(false);
   }
 
   async function attachToJob(jobId: string, score?: number, recommendation?: string, reason?: string) {
@@ -312,11 +353,11 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
   }
 
   const tabs: { key: Tab; label: string; icon: string }[] = [
-    { key: 'candidature',  label: 'Candidature',  icon: '📋' },
-    { key: 'analyse',      label: 'Analyse IA',   icon: '🤖' },
-    { key: 'cv',           label: 'CV Extrait',   icon: '📄' },
-    { key: 'matching',     label: 'Matching offres', icon: '🎯' },
-    { key: 'pretentions',  label: 'Prétentions',  icon: '💼' },
+    { key: 'candidature',  label: t('tabApplication'),  icon: '📋' },
+    { key: 'analyse',      label: t('tabAiAnalysis'),   icon: '🤖' },
+    { key: 'cv',           label: t('tabExtractedCv'),  icon: '📄' },
+    { key: 'matching',     label: t('tabMatchingJobs'),  icon: '🎯' },
+    { key: 'pretentions',  label: t('tabSalary'),       icon: '💼' },
   ];
 
   return (
@@ -325,7 +366,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
       <div className="flex items-center gap-2 text-sm text-gray-500">
         <Link href="/hr/dashboard" className="hover:text-gray-900">Dashboard</Link>
         <span>/</span>
-        <Link href="/hr/candidates" className="hover:text-gray-900">Candidats</Link>
+        <Link href="/hr/candidates" className="hover:text-gray-900">{t('breadcrumbCandidates')}</Link>
         <span>/</span>
         <span className="text-gray-900 font-medium">{app.name}</span>
       </div>
@@ -377,7 +418,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   <button
                     onClick={() => { setNameInput(app.name); setEditingName(true); }}
                     className="opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 hover:text-gray-600 p-1 rounded"
-                    title="Modifier le nom">
+                    title={t('editName')}>
                     ✏️
                   </button>
                 </div>
@@ -392,15 +433,15 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 text-sm mt-1">Candidat pour : <span className="text-emerald-600 font-medium">{app.job_title}</span></p>
-              <p className="text-gray-400 text-xs mt-0.5">{app.department} • Reçu le {new Date(app.created_at).toLocaleDateString('fr-FR')}</p>
+              <p className="text-gray-500 text-sm mt-1">{t('candidateFor')} <span className="text-emerald-600 font-medium">{app.job_title}</span></p>
+              <p className="text-gray-400 text-xs mt-0.5">{app.department} • {t('receivedOn')} {new Date(app.created_at).toLocaleDateString('fr-FR')}</p>
             </div>
           </div>
           <div className="flex items-center gap-3">
             {can('matching.run') && (
               <button onClick={() => runMatching()} disabled={matching}
                 className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60">
-                {matching ? '⏳ Analyse…' : '🎯 Matcher avec les offres'}
+                {matching ? `⏳ ${t('aiRelaunchInProgress')}` : `🎯 ${t('matchWithJobs')}`}
               </button>
             )}
             {app.cv_filename && (
@@ -411,11 +452,11 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             )}
             <button onClick={openExportModal}
               className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors">
-              📤 Exporter CV
+              📤 {t('exportCvBtn')}
             </button>
             {can('candidates.delete') && (
               <button onClick={deleteCandidate} className="text-emerald-400 hover:text-emerald-600 text-sm px-3 py-2 rounded-xl hover:bg-emerald-50 transition-colors">
-                🗑 Supprimer le candidat
+                🗑 {t('deleteCandidate')}
               </button>
             )}
           </div>
@@ -423,7 +464,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
 
         {/* Pipeline stage */}
         <div className="mt-6 pt-6 border-t border-gray-100">
-          <p className="text-sm font-medium text-gray-700 mb-3">Étape actuelle</p>
+          <p className="text-sm font-medium text-gray-700 mb-3">{t('currentStage')}</p>
           <div className="flex flex-wrap gap-2">
             {STAGES.map(stage => (
               <button key={stage} onClick={() => changeStage(stage)} disabled={moving}
@@ -444,7 +485,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         <div className="space-y-4">
           {/* Contact */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">Coordonnées</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('sidebarContact')}</h3>
             <div className="space-y-3">
               <div className="flex items-center gap-3">
                 <span className="text-gray-400">✉️</span>
@@ -469,7 +510,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
           {allApplications.length > 0 && (
             <div className="bg-white rounded-2xl border border-gray-100 p-5">
               <h3 className="font-semibold text-gray-900 mb-3 flex items-center justify-between">
-                <span>Candidatures</span>
+                <span>{t('applicationsTitle')}</span>
                 <span className="text-xs bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full font-normal">{allApplications.length}</span>
               </h3>
               <div className="space-y-2">
@@ -496,7 +537,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                       <span className="text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' })}</span>
                       <button
                         onClick={async () => {
-                          if (!confirm(`Supprimer la candidature "${a.job_title}" ?`)) return;
+                          if (!confirm(`${t('applicationDeleteConfirm')} "${a.job_title}" ?`)) return;
                           await fetch(`/api/applications/${a.id}`, { method: 'DELETE' });
                           const remaining = allApplications.filter(x => x.id !== a.id);
                           setAllApplications(remaining);
@@ -509,7 +550,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         className="flex items-center gap-1 text-xs text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 px-2 py-0.5 rounded-md transition-colors"
                       >
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                        Supprimer
+                        {t('applicationDelete')}
                       </button>
                     </div>
                   </div>
@@ -520,13 +561,13 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
 
           {/* Score résumé */}
           <div className={`rounded-2xl border p-5 ${SCORE_BG(app.score)}`}>
-            <h3 className="font-semibold text-gray-900 mb-3">Score de matching</h3>
+            <h3 className="font-semibold text-gray-900 mb-3">{t('scoreTitle')}</h3>
             <div className="flex items-center gap-4 mb-3">
               <div className={`text-5xl font-bold ${SCORE_COLOR(app.score)}`}>{app.score}</div>
               <div>
                 <div className="text-gray-600 text-sm font-medium">/ 100</div>
                 <div className={`mt-1 text-xs font-semibold px-2 py-0.5 rounded-full border inline-block ${RECO_COLORS[app.recommendation] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                  {app.recommendation || 'Non évalué'}
+                  {app.recommendation || t('aiNotEvaluated')}
                 </div>
               </div>
             </div>
@@ -537,13 +578,13 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
             {app.score_summary && <p className="text-xs text-gray-700 leading-relaxed">{app.score_summary}</p>}
             <button onClick={() => setActiveTab('analyse')}
               className="mt-3 text-xs text-emerald-600 hover:underline font-medium">
-              Voir l'analyse complète →
+              {t('scoreFullAnalysis')}
             </button>
           </div>
 
           {/* History */}
           <div className="bg-white rounded-2xl border border-gray-100 p-5">
-            <h3 className="font-semibold text-gray-900 mb-4">Historique du pipeline</h3>
+            <h3 className="font-semibold text-gray-900 mb-4">{t('pipelineHistoryTitle')}</h3>
             <div className="space-y-2">
               {app.history.map(h => (
                 <div key={h.id} className="flex items-center gap-2 text-xs text-gray-600">
@@ -580,7 +621,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                 <div className="space-y-6">
                   {app.cover_letter ? (
                     <div>
-                      <h3 className="font-semibold text-gray-900 mb-3">Lettre de motivation</h3>
+                      <h3 className="font-semibold text-gray-900 mb-3">{t('coverLetter')}</h3>
                       <div className="bg-gray-50 rounded-xl p-5 text-gray-700 text-sm leading-relaxed whitespace-pre-line border border-gray-100">
                         {app.cover_letter}
                       </div>
@@ -588,36 +629,36 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   ) : (
                     <div className="text-center py-8 text-gray-400 text-sm">
                       <div className="text-3xl mb-2">✉️</div>
-                      Aucune lettre de motivation
+                      {t('noCoverLetter')}
                     </div>
                   )}
 
                   {/* Notes */}
                   <div>
                     <div className="flex items-center justify-between mb-4">
-                      <h3 className="font-semibold text-gray-900">Notes & commentaires</h3>
+                      <h3 className="font-semibold text-gray-900">{t('notesAndComments')}</h3>
                       <button onClick={() => setAddingNote(!addingNote)}
                         className="text-sm bg-gray-100 hover:bg-gray-200 text-gray-700 px-3 py-1.5 rounded-lg transition-colors font-medium">
-                        {addingNote ? 'Annuler' : '+ Ajouter une note'}
+                        {addingNote ? t('cancelNote') : t('addNoteBtn')}
                       </button>
                     </div>
 
                     {addingNote && (
                       <div className="mb-4 p-4 bg-gray-50 rounded-xl">
                         <textarea value={note} onChange={e => setNote(e.target.value)}
-                          rows={3} placeholder="Votre commentaire..."
+                          rows={3} placeholder={t('noteCommentPlaceholder')}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 resize-none bg-white" />
                         <div className="flex justify-end gap-2 mt-2">
                           <button onClick={submitNote} disabled={!note.trim()}
                             className="bg-emerald-700 text-white px-4 py-2 rounded-lg text-sm font-medium hover:bg-emerald-800 disabled:opacity-50 transition-colors">
-                            Enregistrer
+                            {t('saveNote')}
                           </button>
                         </div>
                       </div>
                     )}
 
                     {app.notes.length === 0 && !addingNote ? (
-                      <div className="text-center text-gray-400 text-sm py-6">Aucune note pour ce candidat</div>
+                      <div className="text-center text-gray-400 text-sm py-6">{t('noNotes')}</div>
                     ) : (
                       <div className="space-y-3">
                         {app.notes.map(n => (
@@ -641,7 +682,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {/* Score global */}
                   <div className={`rounded-xl border p-5 ${SCORE_BG(app.score)}`}>
                     <div className="flex items-center justify-between mb-3">
-                      <span className="font-semibold text-gray-900">Score de matching global</span>
+                      <span className="font-semibold text-gray-900">{t('aiGlobalScore')}</span>
                       <span className={`text-3xl font-bold ${SCORE_COLOR(app.score)}`}>{app.score}/100</span>
                     </div>
                     <div className="w-full bg-white/60 rounded-full h-3 mb-3">
@@ -650,20 +691,20 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={`text-sm font-semibold px-3 py-1 rounded-full border ${RECO_COLORS[app.recommendation] || 'bg-gray-100 text-gray-700 border-gray-200'}`}>
-                        {app.recommendation || 'Non évalué'}
+                        {app.recommendation || t('aiNotEvaluated')}
                       </span>
                     </div>
                   </div>
 
                   {/* Barème */}
                   <div className="bg-gray-50 rounded-xl p-4 border border-gray-100">
-                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">Barème de notation</h4>
+                    <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">{t('aiRatingScale')}</h4>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { label: 'Compétences techniques', weight: 35 },
-                        { label: 'Expérience professionnelle', weight: 30 },
-                        { label: 'Formation académique', weight: 20 },
-                        { label: 'Adéquation sectorielle', weight: 15 },
+                        { label: t('aiSkills'), weight: 35 },
+                        { label: t('aiExperience'), weight: 30 },
+                        { label: t('aiEducation'), weight: 20 },
+                        { label: t('aiSector'), weight: 15 },
                       ].map(item => (
                         <div key={item.label} className="flex items-center justify-between bg-white rounded-lg px-3 py-2 border border-gray-100">
                           <span className="text-xs text-gray-600">{item.label}</span>
@@ -677,7 +718,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {app.score_summary && (
                     <div className="bg-white rounded-xl border border-gray-100 p-5">
                       <h4 className="font-semibold text-gray-900 mb-2 flex items-center gap-2">
-                        <span>📝</span> Synthèse
+                        <span>📝</span> {t('aiSynthesis')}
                       </h4>
                       <p className="text-sm text-gray-700 leading-relaxed">{app.score_summary}</p>
                     </div>
@@ -688,7 +729,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                     {app.strengths && (
                       <div className="bg-green-50 border border-green-100 rounded-xl p-5">
                         <h4 className="font-semibold text-green-800 mb-2 flex items-center gap-2 text-sm">
-                          <span>✅</span> Points forts
+                          <span>✅</span> {t('aiStrengths')}
                         </h4>
                         <p className="text-sm text-green-900 leading-relaxed">{app.strengths}</p>
                       </div>
@@ -698,7 +739,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                     {app.gaps && (
                       <div className="bg-emerald-50 border border-emerald-100 rounded-xl p-5">
                         <h4 className="font-semibold text-emerald-800 mb-2 flex items-center gap-2 text-sm">
-                          <span>⚠️</span> Points de vigilance
+                          <span>⚠️</span> {t('aiWatchPoints')}
                         </h4>
                         <p className="text-sm text-emerald-900 leading-relaxed">{app.gaps}</p>
                       </div>
@@ -709,11 +750,11 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                     <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 flex items-start gap-3">
                       <span className="text-xl flex-shrink-0">💡</span>
                       <div>
-                        <p className="text-sm font-semibold text-amber-800">Synthèse non disponible</p>
-                        <p className="text-xs text-amber-700 mt-0.5">Relancez le matching pour générer une synthèse détaillée pour ce candidat.</p>
+                        <p className="text-sm font-semibold text-amber-800">{t('aiSynthesisUnavailable')}</p>
+                        <p className="text-xs text-amber-700 mt-0.5">{t('aiSynthesisUnavailableDesc')}</p>
                         <button onClick={() => runMatching(app.job_id ? [app.job_id] : undefined)} disabled={matching}
                           className="mt-2 text-xs bg-amber-700 hover:bg-amber-800 text-white px-3 py-1.5 rounded-lg font-semibold transition-colors disabled:opacity-50">
-                          {matching ? '⏳ Analyse…' : '🔄 Relancer le matching'}
+                          {matching ? `⏳ ${t('aiRelaunchInProgress')}` : `🔄 ${t('aiRelaunchMatching')}`}
                         </button>
                       </div>
                     </div>
@@ -721,15 +762,15 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {!app.score_summary && app.score === 0 && (
                     <div className="text-center py-10 text-gray-400">
                       <div className="text-4xl mb-3">🤖</div>
-                      <p className="text-sm">Aucune analyse IA disponible pour ce candidat.</p>
-                      <p className="text-xs mt-1">L'analyse est générée automatiquement lors de la soumission d'un CV.</p>
+                      <p className="text-sm">{t('aiNoAnalysis')}</p>
+                      <p className="text-xs mt-1">{t('aiNoAnalysisDesc')}</p>
                     </div>
                   )}
 
                   {/* Poste ciblé */}
                   <div className="bg-blue-50 border border-blue-100 rounded-xl p-5">
                     <h4 className="font-semibold text-blue-900 mb-2 text-sm flex items-center gap-2">
-                      <span>🎯</span> Poste évalué
+                      <span>🎯</span> {t('aiEvaluatedJob')}
                     </h4>
                     <p className="text-sm font-medium text-blue-800">{app.job_title}</p>
                     <p className="text-xs text-blue-600 mt-1">{app.department}</p>
@@ -742,19 +783,19 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                 <div>
                   <div className="flex items-center justify-between mb-5">
                     <div>
-                      <h3 className="font-semibold text-gray-900">Matching avec les offres actives</h3>
-                      <p className="text-xs text-gray-400 mt-0.5">Classement par compatibilité avec le profil du candidat</p>
+                      <h3 className="font-semibold text-gray-900">{t('matchingActive')}</h3>
+                      <p className="text-xs text-gray-400 mt-0.5">{t('matchingActiveSubtitle')}</p>
                     </div>
                     <div className="flex items-center gap-2">
                       {matchResults !== null && (
                         <button onClick={() => setMatchResults(null)}
                           className="text-xs text-gray-400 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-                          ← Changer la sélection
+                          {t('matchingChangeSelection')}
                         </button>
                       )}
                       <button onClick={() => runMatching()} disabled={matching || selectedJobIds.size === 0}
                         className="flex items-center gap-2 bg-purple-600 hover:bg-purple-700 text-white px-4 py-2 rounded-xl text-sm font-medium transition-colors disabled:opacity-60">
-                        {matching ? '⏳ Analyse…' : `🔄 Relancer (${selectedJobIds.size})`}
+                        {matching ? `⏳ ${t('aiRelaunchInProgress')}` : `🔄 ${t('matchingRelaunch')} (${selectedJobIds.size})`}
                       </button>
                     </div>
                   </div>
@@ -762,21 +803,21 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {matching ? (
                     <div className="text-center py-16">
                       <div className="animate-spin w-10 h-10 rounded-full mx-auto mb-4" style={{ border: '3px solid #9333ea30', borderTopColor: '#9333ea' }} />
-                      <p className="text-gray-500 text-sm">Pintalent analyse la compatibilité avec toutes les offres actives…</p>
+                      <p className="text-gray-500 text-sm">{t('matchingAnalyzing')}</p>
                     </div>
                   ) : matchResults === null ? (
                     <div className="space-y-4">
                       {/* Header sélection */}
                       <div className="flex items-center justify-between">
                         <p className="text-sm text-gray-500">
-                          <span className="font-semibold text-gray-800">{selectedJobIds.size}</span> offre{selectedJobIds.size !== 1 ? 's' : ''} sélectionnée{selectedJobIds.size !== 1 ? 's' : ''} sur {allJobs.length}
+                          <span className="font-semibold text-gray-800">{selectedJobIds.size}</span> {t('matchingSelectedOf')} {allJobs.length}
                         </p>
                         <div className="flex gap-2">
                           <button onClick={() => setSelectedJobIds(new Set(allJobs.map(j => j.id)))}
-                            className="text-xs text-purple-600 hover:text-purple-800 font-medium">Tout sélectionner</button>
+                            className="text-xs text-purple-600 hover:text-purple-800 font-medium">{t('matchingSelectAll')}</button>
                           <span className="text-gray-300">|</span>
                           <button onClick={() => setSelectedJobIds(new Set())}
-                            className="text-xs text-gray-400 hover:text-gray-600 font-medium">Tout désélectionner</button>
+                            className="text-xs text-gray-400 hover:text-gray-600 font-medium">{t('matchingDeselectAll')}</button>
                         </div>
                       </div>
 
@@ -801,38 +842,76 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                           );
                         })}
                         {allJobs.length === 0 && (
-                          <p className="text-center text-sm text-gray-400 py-8">Aucune offre active</p>
+                          <p className="text-center text-sm text-gray-400 py-8">{t('matchingNoActiveJobs')}</p>
                         )}
                       </div>
 
                       {/* Bouton lancer */}
                       <button onClick={() => runMatching()} disabled={selectedJobIds.size === 0 || !jobsLoaded}
                         className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold rounded-xl text-sm transition-colors">
-                        🎯 Lancer le matching sur {selectedJobIds.size} offre{selectedJobIds.size !== 1 ? 's' : ''}
+                        🎯 {t('matchingLaunch')} {selectedJobIds.size}
                       </button>
                     </div>
                   ) : matchResults.length === 0 ? (
                     <div className="text-center py-12">
                       <div className="text-3xl mb-3">😕</div>
                       <p className="text-sm font-medium text-gray-700 mb-1">
-                        {matchError ? 'Erreur lors du matching' : 'Aucun résultat'}
+                        {matchError ? t('matchingError') : t('matchingNoResults')}
                       </p>
                       {matchError && (
                         <p className="text-xs text-emerald-600 bg-emerald-50 border border-emerald-100 rounded-xl px-4 py-2 max-w-sm mx-auto mb-3">{matchError}</p>
                       )}
-                      {!matchError && <p className="text-xs text-gray-400">Aucune offre active ou CV non disponible pour l'analyse.</p>}
+                      {!matchError && <p className="text-xs text-gray-400">{t('matchingNoActiveOffers')}</p>}
                       {!app.cv_text && (
                         <p className="text-xs text-amber-600 bg-amber-50 border border-amber-100 rounded-xl px-4 py-2 max-w-sm mx-auto mt-2">
-                          ⚠️ Aucun texte extrait du CV — le matching ne peut pas fonctionner sans texte.
+                          ⚠️ {t('matchingNoCvText')}
                         </p>
                       )}
                     </div>
                   ) : (
                     <div className="space-y-3">
-                      {matchResults.map((r, i) => (
-                        <div key={r.job_id} className={`rounded-xl border p-4 ${i === 0 ? 'border-purple-200 bg-purple-50' : 'border-gray-100 bg-white'}`}>
+                      {/* Bulk action bar */}
+                      {selectedToAttach.size > 0 && (
+                        <div className="flex items-center justify-between bg-purple-50 border border-purple-200 rounded-xl px-4 py-2.5">
+                          <span className="text-sm text-purple-700 font-medium">
+                            {selectedToAttach.size} {t('matchingSelected')}
+                          </span>
+                          <button
+                            onClick={attachMultiple}
+                            disabled={attachingBulk}
+                            className="px-4 py-1.5 bg-purple-600 hover:bg-purple-700 text-white text-sm font-semibold rounded-lg transition-colors disabled:opacity-50 flex items-center gap-2">
+                            {attachingBulk ? '⏳' : '＋'} {t('matchingAttachSelected')} ({selectedToAttach.size})
+                          </button>
+                        </div>
+                      )}
+
+                      {matchResults.map((r, i) => {
+                        const isAttached = attached.has(r.job_id);
+                        const isSelected = selectedToAttach.has(r.job_id);
+                        return (
+                        <div key={r.job_id} className={`rounded-xl border p-4 transition-all ${
+                          isSelected ? 'border-purple-300 bg-purple-50' :
+                          i === 0 ? 'border-purple-200 bg-purple-50/50' : 'border-gray-100 bg-white'
+                        }`}>
                           <div className="flex items-start justify-between gap-3 flex-wrap">
                             <div className="flex items-start gap-3 flex-1 min-w-0">
+                              {/* Checkbox (only for non-attached) */}
+                              {!isAttached ? (
+                                <input
+                                  type="checkbox"
+                                  checked={isSelected}
+                                  onChange={e => {
+                                    setSelectedToAttach(prev => {
+                                      const n = new Set(prev);
+                                      e.target.checked ? n.add(r.job_id) : n.delete(r.job_id);
+                                      return n;
+                                    });
+                                  }}
+                                  className="mt-1 w-4 h-4 rounded accent-purple-600 flex-shrink-0 cursor-pointer"
+                                />
+                              ) : (
+                                <div className="w-4 h-4 mt-1 flex-shrink-0" />
+                              )}
                               <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${i === 0 ? 'bg-purple-600 text-white' : 'bg-gray-100 text-gray-600'}`}>
                                 {i + 1}
                               </div>
@@ -858,16 +937,16 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                   r.recommendation === 'À évaluer' ? 'bg-yellow-100 text-yellow-700' : 'bg-emerald-100 text-emerald-700'
                                 }`}>{r.recommendation}</span>
                               </div>
-                              {attached.has(r.job_id) ? (
+                              {isAttached ? (
                                 <div className="flex flex-col items-center gap-1">
                                   <span className="flex items-center gap-1 px-3 py-1 rounded-lg text-xs font-semibold bg-green-100 text-green-700">
-                                    ✓ Rattaché
+                                    ✓ {t('matchingAttached')}
                                   </span>
                                   <button
                                     onClick={() => runMatching([r.job_id])}
                                     disabled={matching}
                                     className="text-xs text-gray-400 hover:text-purple-600 px-2 py-0.5 rounded hover:bg-purple-50 transition-colors disabled:opacity-40">
-                                    {matching ? '⏳' : '🔄 Relancer'}
+                                    {matching ? '⏳' : `🔄 ${t('matchingRelaunchScore')}`}
                                   </button>
                                 </div>
                               ) : (
@@ -875,12 +954,12 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                                   className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors disabled:opacity-50 ${
                                     i === 0 ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                                   }`}>
-                                  {attaching === r.job_id ? '⏳' : '+ Rattacher'}
+                                  {attaching === r.job_id ? '⏳' : `＋ ${t('matchingAttach')}`}
                                 </button>
                               )}
                             </div>
                           </div>
-                          {/* Score bar — color driven by recommendation, not raw score */}
+                          {/* Score bar */}
                           <div className="mt-3 w-full bg-gray-100 rounded-full h-1.5">
                             <div className={`h-1.5 rounded-full ${
                               r.recommendation === 'À retenir' ? 'bg-green-500' :
@@ -889,7 +968,8 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                               style={{ width: `${r.score}%` }} />
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   )}
                 </div>
@@ -899,13 +979,13 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
               {activeTab === 'pretentions' && (
                 <div className="space-y-6">
                   <div>
-                    <h3 className="font-semibold text-gray-900 mb-1">Prétentions & disponibilité</h3>
-                    <p className="text-xs text-gray-400">Informations salariales et contractuelles du candidat</p>
+                    <h3 className="font-semibold text-gray-900 mb-1">{t('salaryTitle')}</h3>
+                    <p className="text-xs text-gray-400">{t('salarySubtitle')}</p>
                   </div>
 
                   {/* Type de contrat */}
                   <div>
-                    <label className="block text-sm font-semibold text-gray-700 mb-3">Type de contrat souhaité</label>
+                    <label className="block text-sm font-semibold text-gray-700 mb-3">{t('salaryContractType')}</label>
                     <div className="grid grid-cols-2 gap-3">
                       {['CDI', 'Freelance'].map(type => (
                         <button key={type} type="button"
@@ -926,7 +1006,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {pretentions.contract_preference === 'CDI' && (
                     <div className="grid grid-cols-2 gap-4">
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Salaire actuel</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">{t('salaryCurrentLabel')}</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -939,7 +1019,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         </div>
                       </div>
                       <div>
-                        <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">Salaire souhaité</label>
+                        <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">{t('salaryDesiredLabel')}</label>
                         <div className="relative">
                           <input
                             type="text"
@@ -957,7 +1037,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {/* Freelance */}
                   {pretentions.contract_preference === 'Freelance' && (
                     <div>
-                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">TJM souhaité</label>
+                      <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wide">{t('salaryTjmLabel')}</label>
                       <div className="relative max-w-xs">
                         <input
                           type="text"
@@ -973,7 +1053,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
 
                   {/* Préavis */}
                   <div>
-                    <label className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">Préavis</label>
+                    <label className="block text-xs font-semibold text-gray-600 mb-2 uppercase tracking-wide">{t('salaryNoticeLabel')}</label>
                     <div className="flex flex-wrap gap-2">
                       {['Immédiat', '1 mois', '2 mois', '3 mois', '6 mois'].map(p => (
                         <button key={p} type="button"
@@ -990,7 +1070,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                         type="text"
                         value={['Immédiat', '1 mois', '2 mois', '3 mois', '6 mois'].includes(pretentions.notice_period) ? '' : pretentions.notice_period}
                         onChange={e => setPretentions(prev => ({ ...prev, notice_period: e.target.value }))}
-                        placeholder="Autre…"
+                        placeholder={t('salaryNoticePlaceholder')}
                         className="px-4 py-2 rounded-xl text-sm border border-dashed border-gray-300 text-gray-500 focus:outline-none focus:ring-2 focus:ring-emerald-400 w-28"
                       />
                     </div>
@@ -999,33 +1079,33 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                   {/* Résumé */}
                   {(pretentions.current_salary || pretentions.desired_salary || pretentions.tjm || pretentions.notice_period) && (
                     <div className="bg-gray-50 rounded-xl border border-gray-100 p-4 space-y-2">
-                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Résumé</p>
+                      <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">{t('salaryResumeSectionTitle')}</p>
                       <div className="grid grid-cols-2 gap-2">
                         <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
-                          <p className="text-xs text-gray-400">Contrat</p>
+                          <p className="text-xs text-gray-400">{t('salaryResumeContract')}</p>
                           <p className="text-sm font-semibold text-gray-900">{pretentions.contract_preference}</p>
                         </div>
                         {pretentions.contract_preference === 'CDI' && pretentions.current_salary && (
                           <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
-                            <p className="text-xs text-gray-400">Salaire actuel</p>
+                            <p className="text-xs text-gray-400">{t('salaryResumeCurrentSalary')}</p>
                             <p className="text-sm font-semibold text-gray-900">{pretentions.current_salary} </p>
                           </div>
                         )}
                         {pretentions.contract_preference === 'CDI' && pretentions.desired_salary && (
                           <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
-                            <p className="text-xs text-gray-400">Salaire souhaité</p>
+                            <p className="text-xs text-gray-400">{t('salaryResumeDesiredSalary')}</p>
                             <p className="text-sm font-semibold text-green-700">{pretentions.desired_salary} </p>
                           </div>
                         )}
                         {pretentions.contract_preference === 'Freelance' && pretentions.tjm && (
                           <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
-                            <p className="text-xs text-gray-400">TJM</p>
+                            <p className="text-xs text-gray-400">{t('salaryResumeTjm')}</p>
                             <p className="text-sm font-semibold text-green-700">{pretentions.tjm} €/jour</p>
                           </div>
                         )}
                         {pretentions.notice_period && (
                           <div className="bg-white rounded-lg px-3 py-2 border border-gray-100">
-                            <p className="text-xs text-gray-400">Préavis</p>
+                            <p className="text-xs text-gray-400">{t('salaryResumeNotice')}</p>
                             <p className="text-sm font-semibold text-gray-900">{pretentions.notice_period}</p>
                           </div>
                         )}
@@ -1041,7 +1121,7 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                           ? 'bg-green-600 text-white'
                           : 'bg-emerald-700 hover:bg-emerald-800 text-white disabled:opacity-50'
                       }`}>
-                      {savingPretentions ? '⏳ Sauvegarde…' : savedPretentions ? '✓ Sauvegardé !' : '💾 Sauvegarder'}
+                      {savingPretentions ? `⏳ ${t('salarySaving')}` : savedPretentions ? `✓ ${t('salarySaved')}` : `💾 ${t('salarySaveBtn')}`}
                     </button>
                   </div>
                 </div>
@@ -1052,21 +1132,21 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                 <div>
                   <div className="flex items-center justify-between mb-4">
                     <div>
-                      <h3 className="font-semibold text-gray-900">Texte extrait du CV</h3>
+                      <h3 className="font-semibold text-gray-900">{t('cvExtractedTitle')}</h3>
                       {app.cv_filename && (
-                        <p className="text-xs text-gray-400 mt-0.5">Fichier : {app.cv_filename}</p>
+                        <p className="text-xs text-gray-400 mt-0.5">{t('cvFile')} {app.cv_filename}</p>
                       )}
                     </div>
                     <div className="flex items-center gap-2">
                       {app.cv_text && (
                         <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
-                          {app.cv_text.length.toLocaleString()} caractères
+                          {app.cv_text.length.toLocaleString()} {t('cvCharacters')}
                         </span>
                       )}
                       {app.cv_filename && (
                         <a href={`/api/cv/${app.candidate_id}`} download
                           className="text-xs bg-blue-100 text-blue-700 hover:bg-blue-200 px-3 py-1.5 rounded-lg font-medium transition-colors">
-                          ↓ Télécharger
+                          {t('cvDownload')}
                         </a>
                       )}
                     </div>
@@ -1083,18 +1163,18 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
                       <div className="text-4xl mb-3">📄</div>
                       <p className="text-sm font-medium text-gray-500">
                         {app.cv_filename
-                          ? 'CV scanné (image) — texte non extractible'
-                          : 'Aucun CV déposé pour cette candidature'}
+                          ? t('cvScanned')
+                          : t('cvNoFile')}
                       </p>
                       <p className="text-xs mt-2 text-gray-400">
                         {app.cv_filename
-                          ? "L'analyse IA a été réalisée via reconnaissance visuelle du PDF."
-                          : 'Le candidat n\'a pas joint de CV.'}
+                          ? t('cvScannedDesc')
+                          : t('cvNoFileDesc')}
                       </p>
                       {app.cv_filename && (
                         <a href={`/api/cv/${app.candidate_id}`} download
                           className="inline-block mt-4 text-sm bg-blue-600 text-white px-4 py-2 rounded-xl hover:bg-blue-700 transition-colors">
-                          📄 Télécharger le PDF original
+                          📄 {t('cvDownloadOriginal')}
                         </a>
                       )}
                     </div>
@@ -1111,24 +1191,24 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
         <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm">
             <div className="flex items-center justify-between p-5 border-b border-gray-100">
-              <h3 className="font-bold text-gray-900">Exporter le CV</h3>
+              <h3 className="font-bold text-gray-900">{t('exportTitle')}</h3>
               <button onClick={() => setShowExportModal(false)}
                 className="text-gray-400 hover:text-gray-700 text-xl w-8 h-8 flex items-center justify-center rounded-lg hover:bg-gray-100">×</button>
             </div>
             <div className="p-5 space-y-4">
               {/* Template selection */}
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Template</label>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">{t('exportTemplateLabel')}</label>
                 {cvTemplates.length === 0 ? (
                   <div className="text-sm text-gray-500 bg-yellow-50 border border-yellow-200 rounded-xl px-3 py-2.5">
-                    Aucun template disponible.{' '}
-                    <a href="/hr/cv-templates" className="text-emerald-600 hover:underline font-medium">Créer un template →</a>
+                    {t('exportNoTemplate')}{' '}
+                    <a href="/hr/cv-templates" className="text-emerald-600 hover:underline font-medium">{t('exportCreateTemplate')}</a>
                   </div>
                 ) : (
                   <select value={selectedTemplateId} onChange={e => setSelectedTemplateId(e.target.value)}
                     className="w-full border border-gray-300 rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                    {cvTemplates.map(t => (
-                      <option key={t.id} value={t.id}>{t.name}{t.company_name ? ` — ${t.company_name}` : ''}</option>
+                    {cvTemplates.map(tpl => (
+                      <option key={tpl.id} value={tpl.id}>{tpl.name}{tpl.company_name ? ` — ${tpl.company_name}` : ''}</option>
                     ))}
                   </select>
                 )}
@@ -1136,17 +1216,17 @@ export default function CandidateDetailPage({ params }: { params: Promise<{ id: 
 
               {/* Format — DOCX only (PDF generation disabled) */}
               <div className="flex items-center gap-2 px-3 py-2 bg-blue-50 border border-blue-200 rounded-xl text-sm text-blue-700">
-                📘 Format <strong>Word (.docx)</strong>
+                📘 {t('exportFormatWord')}
               </div>
             </div>
             <div className="flex items-center gap-3 p-5 border-t border-gray-100">
               <button onClick={() => setShowExportModal(false)}
                 className="flex-1 py-2.5 text-sm text-gray-600 font-medium rounded-xl hover:bg-gray-100 transition-colors">
-                Annuler
+                {t('exportCancel')}
               </button>
               <button onClick={exportCV} disabled={exporting || !selectedTemplateId || cvTemplates.length === 0}
                 className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 text-white text-sm font-semibold rounded-xl transition-colors">
-                {exporting ? '⏳ Génération…' : '⬇ Générer'}
+                {exporting ? `⏳ ${t('exportSubmitting')}` : `⬇ ${t('exportSubmit')}`}
               </button>
             </div>
           </div>

@@ -1,5 +1,6 @@
 'use client';
 import { useState, useEffect, useCallback } from 'react';
+import { useTranslations } from 'next-intl';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -170,6 +171,8 @@ function PlatformCard({
   onSave: (platform: string, config: Record<string, string>) => Promise<void>;
   onToggle: (platform: string, active: boolean) => Promise<void>;
 }) {
+  const t = useTranslations('jobBoards');
+  const tCommon = useTranslations('common');
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [showPayload, setShowPayload] = useState(false);
@@ -198,7 +201,7 @@ function PlatformCard({
               <span className="font-semibold text-gray-900">{platform.name}</span>
               <span className="text-xs px-2 py-0.5 bg-gray-100 text-gray-500 rounded-full">{platform.badge}</span>
               {isConfigured && (
-                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">✓ Configuré</span>
+                <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">✓ {t('configured')}</span>
               )}
             </div>
             <p className="text-xs text-gray-400 mt-0.5">{platform.desc}</p>
@@ -208,7 +211,7 @@ function PlatformCard({
         <button
           onClick={() => onToggle(platform.id, !isActive)}
           disabled={!isConfigured}
-          title={!isConfigured ? 'Configurez d\'abord le webhook' : ''}
+          title={!isConfigured ? t('configureWebhookFirst') : ''}
           className={`relative inline-flex h-6 w-11 flex-shrink-0 items-center rounded-full transition-colors disabled:opacity-30 ${isActive ? 'bg-gray-900' : 'bg-gray-200'}`}>
           <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
         </button>
@@ -218,7 +221,7 @@ function PlatformCard({
       <div className="px-5 pb-5 flex gap-2">
         <button onClick={() => setOpen(!open)}
           className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-xs font-medium text-gray-600 hover:bg-gray-50 transition-colors">
-          {open ? '▲ Fermer' : '⚙ Configurer'}
+          {open ? t('closeConfigBtn') : t('configureBtn')}
         </button>
         <button onClick={() => setShowPayload(!showPayload)}
           className="px-3 py-2 border border-gray-200 rounded-xl text-xs text-gray-400 hover:bg-gray-50 transition-colors">
@@ -250,7 +253,7 @@ function PlatformCard({
 
           {/* Guide */}
           <div className="bg-blue-50 border border-blue-100 rounded-xl p-3">
-            <p className="text-xs font-semibold text-blue-700 mb-2">📋 Guide de configuration</p>
+            <p className="text-xs font-semibold text-blue-700 mb-2">📋 {t('configGuide')}</p>
             <ol className="space-y-1">
               {platform.guide.map((step, i) => (
                 <li key={i} className="text-xs text-blue-600 flex gap-1.5">
@@ -264,11 +267,11 @@ function PlatformCard({
           <div className="flex gap-2 pt-1">
             <button onClick={() => setOpen(false)}
               className="flex-1 px-3 py-2 border border-gray-200 rounded-xl text-xs hover:bg-white transition-colors">
-              Annuler
+              {tCommon('cancel')}
             </button>
             <button onClick={handleSave} disabled={saving}
               className="flex-1 px-3 py-2 bg-gray-900 text-white rounded-xl text-xs font-medium hover:bg-gray-800 disabled:opacity-50 transition-colors">
-              {saving ? '⏳ Sauvegarde...' : '💾 Sauvegarder'}
+              {saving ? `⏳ ${t('savingConfig')}` : `💾 ${t('saveConfig')}`}
             </button>
           </div>
         </div>
@@ -277,7 +280,7 @@ function PlatformCard({
       {/* Payload preview */}
       {showPayload && (
         <div className="border-t border-gray-100 px-5 py-4 bg-gray-900 rounded-b-2xl">
-          <p className="text-xs text-gray-400 mb-2 font-medium">📦 Payload envoyé (POST JSON)</p>
+          <p className="text-xs text-gray-400 mb-2 font-medium">📦 {t('payloadTitle')}</p>
           <pre className="text-xs font-mono text-green-400 overflow-x-auto leading-relaxed">
             {JSON.stringify({ ...PAYLOAD_EXAMPLE, platform: platform.id }, null, 2)}
           </pre>
@@ -300,6 +303,7 @@ function PublishModal({
   onClose: () => void;
   onDone: () => void;
 }) {
+  const t = useTranslations('jobBoards');
   const [selectedJob, setSelectedJob] = useState('');
   const [selectedPlatforms, setSelectedPlatforms] = useState<string[]>([]);
   const [publishing, setPublishing] = useState(false);
@@ -330,8 +334,8 @@ function PublishModal({
       <div className="bg-white rounded-2xl shadow-xl w-full max-w-lg">
         <div className="p-6 border-b border-gray-100 flex justify-between items-center">
           <div>
-            <h2 className="text-lg font-semibold text-gray-900">Diffuser une offre</h2>
-            <p className="text-xs text-gray-400 mt-0.5">Publiez en un clic sur plusieurs plateformes</p>
+            <h2 className="text-lg font-semibold text-gray-900">{t('publishModalTitle')}</h2>
+            <p className="text-xs text-gray-400 mt-0.5">{t('publishModalSubtitle')}</p>
           </div>
           <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-xl leading-none">&times;</button>
         </div>
@@ -339,7 +343,7 @@ function PublishModal({
         {results ? (
           /* Results */
           <div className="p-6 space-y-3">
-            <p className="text-sm font-medium text-gray-700 mb-4">Résultats de la diffusion :</p>
+            <p className="text-sm font-medium text-gray-700 mb-4">{t('publishModalResults')}</p>
             {Object.entries(results).map(([platform, result]) => {
               const p = PLATFORMS.find(p => p.id === platform);
               return (
@@ -351,10 +355,10 @@ function PublishModal({
                     <p className="text-sm font-medium text-gray-900">{p?.name || platform}</p>
                     {result.status === 'published' ? (
                       <p className="text-xs text-green-600">
-                        ✓ Publié avec succès
+                        ✓ {t('publishSuccessShort')}
                         {result.external_url && (
                           <a href={result.external_url} target="_blank" rel="noopener"
-                            className="ml-2 underline">Voir l&apos;offre ↗</a>
+                            className="ml-2 underline">{t('viewExternal')} ↗</a>
                         )}
                       </p>
                     ) : (
@@ -366,11 +370,11 @@ function PublishModal({
             })}
             <div className="pt-2 flex gap-2">
               <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors">
-                Fermer
+                {t('publishModalClose')}
               </button>
               <button onClick={() => { setResults(null); onDone(); }}
                 className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 transition-colors">
-                Voir l&apos;historique
+                {t('publishModalHistory')}
               </button>
             </div>
           </div>
@@ -378,10 +382,10 @@ function PublishModal({
           <div className="p-6 space-y-5">
             {/* Sélection offre */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Offre à diffuser</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('publishModalSelectJobLabel')}</label>
               <select value={selectedJob} onChange={e => setSelectedJob(e.target.value)}
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-gray-900">
-                <option value="">— Sélectionner une offre —</option>
+                <option value="">{t('publishModalSelectJob')}</option>
                 {jobs.map(j => (
                   <option key={j.id} value={j.id}>{j.title} · {j.department} · {j.location}</option>
                 ))}
@@ -390,11 +394,11 @@ function PublishModal({
 
             {/* Sélection plateformes */}
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Plateformes</label>
+              <label className="block text-sm font-medium text-gray-700 mb-2">{t('publishModalPlatformsLabel')}</label>
               {activeIntegrations.length === 0 ? (
                 <div className="text-center py-6 bg-amber-50 border border-amber-200 rounded-xl">
-                  <p className="text-sm text-amber-700">⚠ Aucune intégration active.</p>
-                  <p className="text-xs text-amber-500 mt-1">Configurez et activez au moins une plateforme.</p>
+                  <p className="text-sm text-amber-700">⚠ {t('publishModalNoActive')}</p>
+                  <p className="text-xs text-amber-500 mt-1">{t('publishModalConfigureFirst')}</p>
                 </div>
               ) : (
                 <div className="space-y-2">
@@ -423,12 +427,12 @@ function PublishModal({
 
             <div className="flex gap-2 pt-1">
               <button onClick={onClose} className="flex-1 px-4 py-2 border border-gray-200 rounded-xl text-sm hover:bg-gray-50 transition-colors">
-                Annuler
+                {t('publishModalCancel')}
               </button>
               <button onClick={handlePublish}
                 disabled={!selectedJob || selectedPlatforms.length === 0 || publishing}
                 className="flex-1 px-4 py-2 bg-gray-900 text-white rounded-xl text-sm font-medium hover:bg-gray-800 disabled:opacity-40 transition-colors">
-                {publishing ? '⏳ Diffusion en cours...' : `🚀 Diffuser sur ${selectedPlatforms.length} plateforme${selectedPlatforms.length !== 1 ? 's' : ''}`}
+                {publishing ? `⏳ ${t('publishModalPublishing')}` : `🚀 ${t('publishModalPublishBtn')} ${selectedPlatforms.length}`}
               </button>
             </div>
           </div>
@@ -441,6 +445,7 @@ function PublishModal({
 // ─── History Tab ──────────────────────────────────────────────────────────────
 
 function HistorySection({ refresh }: { refresh: boolean }) {
+  const t = useTranslations('jobBoards');
   const [postings, setPostings] = useState<JobPosting[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -456,11 +461,11 @@ function HistorySection({ refresh }: { refresh: boolean }) {
   const platformName = (id: string) => PLATFORMS.find(p => p.id === id)?.name || id;
   const platformLogo = (id: string) => PLATFORMS.find(p => p.id === id)?.logo || '🔗';
 
-  if (loading) return <div className="text-center py-8 text-gray-400 text-sm">Chargement...</div>;
+  if (loading) return <div className="text-center py-8 text-gray-400 text-sm">{t('loadingHistory')}</div>;
   if (postings.length === 0) return (
     <div className="text-center py-12 text-gray-400">
       <div className="text-4xl mb-2">📭</div>
-      <p className="text-sm">Aucune diffusion pour l&apos;instant.</p>
+      <p className="text-sm">{t('noHistoryDesc')}</p>
     </div>
   );
 
@@ -469,11 +474,11 @@ function HistorySection({ refresh }: { refresh: boolean }) {
       <table className="w-full text-sm">
         <thead className="bg-gray-50 border-b border-gray-100">
           <tr>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Statut</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Offre</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Plateforme</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Date</th>
-            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">Lien</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colStatus')}</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colOffer')}</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colPlatform')}</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colDate')}</th>
+            <th className="px-5 py-3 text-left text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('colLink')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-gray-50">
@@ -485,7 +490,7 @@ function HistorySection({ refresh }: { refresh: boolean }) {
                   p.status === 'error'     ? 'bg-emerald-100 text-emerald-700' :
                                              'bg-yellow-100 text-yellow-700'
                 }`}>
-                  {p.status === 'published' ? '✓ Publié' : p.status === 'error' ? '✕ Erreur' : '⏳ En attente'}
+                  {p.status === 'published' ? `✓ ${t('statusPublished')}` : p.status === 'error' ? `✕ ${t('statusError')}` : `⏳ ${t('statusPending')}`}
                 </span>
                 {p.error && <p className="text-xs text-emerald-400 mt-1 max-w-[200px] truncate">{p.error}</p>}
               </td>
@@ -504,7 +509,7 @@ function HistorySection({ refresh }: { refresh: boolean }) {
               <td className="px-5 py-3">
                 {p.external_url ? (
                   <a href={p.external_url} target="_blank" rel="noopener"
-                    className="text-xs text-blue-600 hover:underline">Voir ↗</a>
+                    className="text-xs text-blue-600 hover:underline">{t('viewLink')}</a>
                 ) : '—'}
               </td>
             </tr>
@@ -518,6 +523,7 @@ function HistorySection({ refresh }: { refresh: boolean }) {
 // ─── Page ─────────────────────────────────────────────────────────────────────
 
 export default function JobBoardsPage() {
+  const t = useTranslations('jobBoards');
   const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [jobs, setJobs] = useState<Job[]>([]);
   const [showPublish, setShowPublish] = useState(false);
@@ -558,23 +564,21 @@ export default function JobBoardsPage() {
       {/* Header */}
       <div className="flex items-start justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Diffusion d&apos;offres</h1>
-          <p className="text-gray-400 text-sm mt-1">
-            Publiez vos offres d&apos;emploi sur LinkedIn, Indeed, HelloWork et d&apos;autres plateformes.
-          </p>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
+          <p className="text-gray-400 text-sm mt-1">{t('subtitle')}</p>
         </div>
         <button onClick={() => setShowPublish(true)}
           className="flex items-center gap-2 px-5 py-2.5 bg-gray-900 text-white rounded-xl font-medium text-sm hover:bg-gray-800 transition-colors shadow-sm">
-          🚀 Diffuser une offre
+          🚀 {t('publish')}
         </button>
       </div>
 
       {/* KPIs */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         {[
-          { label: 'Plateformes configurées', value: integrations.length, icon: '🔌' },
-          { label: 'Actives', value: activeCount, icon: '✅' },
-          { label: 'Plateformes disponibles', value: PLATFORMS.length, icon: '🌐' },
+          { label: t('kpiConfigured'), value: integrations.length, icon: '🔌' },
+          { label: t('kpiActive'), value: activeCount, icon: '✅' },
+          { label: t('kpiAvailable'), value: PLATFORMS.length, icon: '🌐' },
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-gray-100 p-4 flex items-center gap-3">
             <span className="text-2xl">{k.icon}</span>
@@ -588,7 +592,7 @@ export default function JobBoardsPage() {
 
       {/* Platform cards */}
       <div className="mb-8">
-        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">Intégrations disponibles</h2>
+        <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide mb-4">{t('integrations')}</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {PLATFORMS.map(platform => (
             <PlatformCard
@@ -605,9 +609,9 @@ export default function JobBoardsPage() {
       {/* History */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">Historique des diffusions</h2>
+          <h2 className="text-sm font-semibold text-gray-500 uppercase tracking-wide">{t('history')}</h2>
           <button onClick={() => setHistoryRefresh(r => !r)}
-            className="text-xs text-gray-400 hover:text-gray-600 transition-colors">🔄 Actualiser</button>
+            className="text-xs text-gray-400 hover:text-gray-600 transition-colors">🔄 {t('refresh')}</button>
         </div>
         <HistorySection refresh={historyRefresh} />
       </div>

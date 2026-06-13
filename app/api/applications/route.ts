@@ -3,6 +3,7 @@ import { getDb } from '@/lib/db';
 import { v4 as uuidv4 } from 'uuid';
 import { writeFile, mkdir, readFile } from 'fs/promises';
 import path from 'path';
+import { sendEmail } from '@/lib/email';
 
 export async function GET(req: NextRequest) {
   const db = getDb();
@@ -220,6 +221,68 @@ export async function POST(req: NextRequest) {
     db.prepare(`UPDATE applications SET recommendation='À évaluer', updated_at=? WHERE id=?`)
       .run(new Date().toISOString(), appId);
   }
+
+  // ── Notify job creator by email ──────────────────────────────────────────
+  try {
+    const jobWithCreator = db.prepare(`
+      SELECT j.title, j.department, u.email as creator_email, u.name as creator_name
+      FROM jobs j
+      LEFT JOIN users u ON u.id = j.created_by
+      WHERE j.id = ?
+    `).get(jobId) as { title: string; department: string; creator_email: string; creator_name: string } | undefined;
+
+    // Fallback: if no creator, notify all admins
+    let notifyEmail = jobWithCreator?.creator_email;
+    let notifyName = jobWithCreator?.creator_name;
+    if (!notifyEmail) {
+      const adminUser = db.prepare("SELECT email, name FROM users WHERE role = 'admin' LIMIT 1").get() as { email: string; name: string } | undefined;
+      notifyEmail = adminUser?.email;
+      notifyName = adminUser?.name;
+    }
+    if (notifyEmail) {
+      if (!notifyName) notifyName = notifyEmail;
+      const getSetting = (key: string) =>
+        (db.prepare('SELECT value FROM settings WHERE key = ?').get(key) as { value: string } | undefined)?.value || '';
+      const companyName = getSetting('company_name') || 'Pintalent';
+      const baseUrl = getSetting('base_url') || 'http://localhost:3000';
+      const primaryColor = getSetting('primary_color') || '#10b981';
+
+      const html = `
+        <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:24px;border-radius:12px;">
+          <div style="background:${primaryColor};border-radius:8px;padding:20px 24px;margin-bottom:24px;">
+            <h1 style="color:white;margin:0;font-size:20px;">📨 Nouvelle candidature</h1>
+          </div>
+          <div style="background:white;border-radius:8px;padding:24px;border:1px solid #e5e7eb;">
+            <p style="color:#374151;margin:0 0 16px;">Bonjour <strong>${notifyName}</strong>,</p>
+            <p style="color:#374151;margin:0 0 20px;">
+              Un nouveau candidat vient de postuler à l'offre <strong>${jobWithCreator?.title}</strong> (${jobWithCreator?.department}).
+            </p>
+            <table style="width:100%;border-collapse:collapse;margin-bottom:20px;">
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;width:130px;">Candidat</td><td style="padding:8px 0;color:#111827;font-weight:600;font-size:14px;">${name}</td></tr>
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Email</td><td style="padding:8px 0;color:#111827;font-size:14px;">${email}</td></tr>
+              ${phone ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Téléphone</td><td style="padding:8px 0;color:#111827;font-size:14px;">${phone}</td></tr>` : ''}
+              <tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Poste</td><td style="padding:8px 0;color:#111827;font-size:14px;">${jobWithCreator?.title}</td></tr>
+              ${scoreResult.score > 0 ? `<tr><td style="padding:8px 0;color:#6b7280;font-size:14px;">Score IA</td><td style="padding:8px 0;font-size:14px;"><strong style="color:${scoreResult.score >= 75 ? '#16a34a' : scoreResult.score >= 45 ? '#d97706' : '#dc2626'}">${scoreResult.score}/100</strong> — ${scoreResult.recommendation}</td></tr>` : ''}
+            </table>
+            <a href="${baseUrl}/fr/hr/candidates/${appId}"
+              style="display:inline-block;background:${primaryColor};color:white;padding:12px 24px;border-radius:8px;text-decoration:none;font-weight:600;font-size:14px;">
+              Voir la candidature →
+            </a>
+          </div>
+          <p style="color:#9ca3af;font-size:12px;text-align:center;margin-top:16px;">${companyName} · Plateforme de recrutement</p>
+        </div>
+      `;
+
+      sendEmail({
+        to: notifyEmail,
+        subject: `[${companyName}] Nouvelle candidature — ${name} pour ${jobWithCreator?.title}`,
+        html,
+      }).catch(e => console.error('[notify] email error:', e));
+    }
+  } catch (e) {
+    console.error('[notify] failed:', e);
+  }
+  // ────────────────────────────────────────────────────────────────────────
 
   return NextResponse.json({
     id: appId,

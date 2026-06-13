@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { useSearchParams } from 'next/navigation';
 import { Suspense } from 'react';
 import { usePermissions } from '@/lib/permissions-context';
+import { useTranslations } from 'next-intl';
 
 interface Application {
   id: string | null;
@@ -59,6 +60,8 @@ type AttachMode = 'manual' | 'auto';
 interface MatchResult { job_id: string; title: string; department: string; contract_type: string; score: number; recommendation: string; reason: string }
 
 function CandidatesContent() {
+  const t = useTranslations('candidates');
+  const tStages = useTranslations('stages');
   const { can } = usePermissions();
   const searchParams = useSearchParams();
   const [apps, setApps] = useState<Application[]>([]);
@@ -153,14 +156,14 @@ function CandidatesContent() {
 
   async function addCandidate() {
     setAdding(true);
-    setAddProgress({ label: 'Lecture du CV…', pct: 15 });
+    setAddProgress({ label: t('progressReadingCv'), pct: 15 });
 
     const fd = new FormData();
     const formToSend = attachMode === 'auto' ? { ...addForm, job_id: '' } : addForm;
     Object.entries(formToSend).forEach(([k, v]) => fd.append(k, v));
     if (addCv) fd.append('cv', addCv);
 
-    setAddProgress({ label: 'Extraction des coordonnées…', pct: 35 });
+    setAddProgress({ label: t('progressExtractingContacts'), pct: 35 });
 
     let res: Response;
     let data: Record<string, unknown>;
@@ -172,17 +175,17 @@ function CandidatesContent() {
       data = await res.json();
     } catch {
       setAdding(false); setAddProgress(null);
-      showToast('La requête a pris trop longtemps. Vérifiez votre connexion et réessayez.', 'warning');
+      showToast(t('toastTimeout'), 'warning');
       return;
     }
 
     if (!res.ok) {
       setAdding(false); setAddProgress(null);
-      showToast((data.error as string) || 'Impossible d\'extraire les coordonnées. Veuillez saisir le nom et l\'email manuellement.');
+      showToast((data.error as string) || t('toastExtractError'));
       return;
     }
 
-    setAddProgress({ label: 'Candidat enregistré ✓', pct: 60 });
+    setAddProgress({ label: t('progressSaved'), pct: 60 });
 
     // Candidat déjà existant → afficher le message doublon
     if (data.existing) {
@@ -194,7 +197,7 @@ function CandidatesContent() {
     }
 
     if (attachMode === 'manual') {
-      setAddProgress({ label: 'Terminé !', pct: 100 });
+      setAddProgress({ label: t('progressDone'), pct: 100 });
       setTimeout(() => { setAdding(false); setAddProgress(null); closeAdd(); loadApps(); }, 400);
     } else {
       // Step 2 : show job picker before calling Claude
@@ -273,13 +276,13 @@ function CandidatesContent() {
   }
 
   async function deleteCandidate(candidateId: string, name: string) {
-    if (!candidateId) { showToast('ID candidat manquant, rechargez la page.', 'warning'); return; }
+    if (!candidateId) { showToast(t('missingIdWarning'), 'warning'); return; }
     showConfirm(`Supprimer définitivement ${name} ? Toutes ses candidatures seront également supprimées.`, async () => {
       setDeleting(candidateId);
       const res = await fetch(`/api/candidates/${candidateId}`, { method: 'DELETE' });
       const data = await res.json().catch(() => ({}));
       setDeleting(null);
-      if (!res.ok) { showToast(data.error || 'Erreur lors de la suppression'); return; }
+      if (!res.ok) { showToast(data.error || t('toastError')); return; }
       setSelected(prev => { const n = new Set(prev); n.delete(candidateId); return n; });
       loadApps();
   });
@@ -309,7 +312,7 @@ function CandidatesContent() {
       }
     } catch (e) {
       console.error('[extractProfile]', e);
-      showToast('Erreur lors de l\'extraction du profil.');
+      showToast(t('toastProfileError'));
     } finally {
       setExtracting(prev => { const s = new Set(prev); candidateIds.forEach(id => s.delete(id)); return s; });
     }
@@ -390,7 +393,7 @@ function CandidatesContent() {
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 bg-red-100 rounded-full flex items-center justify-center flex-shrink-0 text-lg">🗑</div>
               <div>
-                <h3 className="font-bold text-gray-900 text-sm">Confirmer la suppression</h3>
+                <h3 className="font-bold text-gray-900 text-sm">{t('confirmDeleteHeader')}</h3>
                 <p className="text-sm text-gray-500 mt-1 leading-relaxed">{confirmModal.message}</p>
               </div>
             </div>
@@ -398,12 +401,12 @@ function CandidatesContent() {
               <button
                 onClick={() => setConfirmModal(null)}
                 className="px-4 py-2 text-sm text-gray-600 border border-gray-200 rounded-xl hover:bg-gray-50 font-medium">
-                Annuler
+                {t('confirmDeleteCancel')}
               </button>
               <button
                 onClick={() => { confirmModal.onConfirm(); setConfirmModal(null); }}
                 className="px-4 py-2 text-sm text-white bg-red-600 hover:bg-red-700 rounded-xl font-semibold">
-                Supprimer
+                {t('confirmDeleteOk')}
               </button>
             </div>
           </div>
@@ -421,9 +424,9 @@ function CandidatesContent() {
               <div className="flex flex-col items-center py-8 gap-5 text-center">
                 <div className="w-16 h-16 bg-yellow-100 rounded-full flex items-center justify-center text-3xl">⚠️</div>
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Ce candidat existe déjà</h2>
+                  <h2 className="text-lg font-bold text-gray-900">{t('duplicateTitle')}</h2>
                   <p className="text-sm text-gray-500 mt-1">
-                    <span className="font-semibold text-gray-700">{addedName}</span> est déjà dans votre base de données.
+                    <span className="font-semibold text-gray-700">{addedName}</span> {t('duplicateMsg')}
                   </p>
                 </div>
                 <div className="flex flex-col gap-3 w-full">
@@ -431,10 +434,10 @@ function CandidatesContent() {
                     href={`/hr/candidates/${duplicateId}`}
                     onClick={closeAdd}
                     className="w-full py-3 bg-emerald-700 hover:bg-emerald-800 text-white rounded-xl text-sm font-semibold transition-colors flex items-center justify-center gap-2">
-                    Voir la fiche candidat →
+                    {t('duplicateView')}
                   </Link>
                   <button onClick={closeAdd} className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-500 hover:bg-gray-50">
-                    Fermer
+                    {t('duplicateClose')}
                   </button>
                 </div>
               </div>
@@ -443,13 +446,13 @@ function CandidatesContent() {
             /* ── Étape 1 : saisie candidat ── */
             !addedCandidateId ? (
               <>
-                <h2 className="text-lg font-bold text-gray-900 mb-1">Ajouter un candidat</h2>
-                <p className="text-xs text-gray-400 mb-4">Le nom, email et téléphone sont extraits automatiquement depuis le CV.</p>
+                <h2 className="text-lg font-bold text-gray-900 mb-1">{t('addTitle')}</h2>
+                <p className="text-xs text-gray-400 mb-4">{t('addSubtitle')}</p>
                 <div className="space-y-4 overflow-y-auto flex-1">
 
                   {/* CV — champ principal */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">CV <span className="text-gray-400 font-normal">(PDF ou DOCX)</span></label>
+                    <label className="block text-sm font-medium text-gray-700 mb-1">{t('addCvLabel')} <span className="text-gray-400 font-normal">{t('addCvFormats')}</span></label>
                     <div className={`border-2 border-dashed rounded-xl p-5 text-center cursor-pointer transition-colors ${addCv ? 'border-green-400 bg-green-50' : 'border-gray-200 hover:border-blue-200 hover:bg-blue-50/30'}`}
                       onClick={() => document.getElementById('add-cv-input')?.click()}>
                       {addCv ? (
@@ -462,8 +465,8 @@ function CandidatesContent() {
                       ) : (
                         <div>
                           <div className="text-2xl mb-1">📄</div>
-                          <p className="text-sm text-gray-500">Glisser-déposer ou <span className="text-blue-500 underline">parcourir</span></p>
-                          <p className="text-xs text-gray-400 mt-1">Les coordonnées seront extraites automatiquement</p>
+                          <p className="text-sm text-gray-500">{t('addCvDropFull')}</p>
+                          <p className="text-xs text-gray-400 mt-1">{t('addCvAutoExtract')}</p>
                         </div>
                       )}
                     </div>
@@ -475,13 +478,13 @@ function CandidatesContent() {
                   <details className="group">
                     <summary className="cursor-pointer text-xs text-gray-400 hover:text-gray-600 select-none list-none flex items-center gap-1">
                       <span className="group-open:rotate-90 transition-transform inline-block">▶</span>
-                      Saisir / corriger les coordonnées manuellement
+                      {t('addOverrideManual')}
                     </summary>
                     <div className="mt-3 grid grid-cols-2 gap-3">
                       {[
-                        { key: 'name',     label: 'Nom complet', type: 'text',  placeholder: 'Prénom Nom' },
-                        { key: 'email',    label: 'Email',       type: 'email', placeholder: 'email@exemple.com' },
-                        { key: 'phone',    label: 'Téléphone',   type: 'text',  placeholder: '+212 6xx xx xx xx' },
+                        { key: 'name',     label: t('addName'),  type: 'text',  placeholder: 'Prénom Nom' },
+                        { key: 'email',    label: t('addEmail'), type: 'email', placeholder: 'email@exemple.com' },
+                        { key: 'phone',    label: t('addPhone'), type: 'text',  placeholder: '+212 6xx xx xx xx' },
                         { key: 'linkedin', label: 'LinkedIn',    type: 'text',  placeholder: 'linkedin.com/in/...' },
                       ].map(f => (
                         <div key={f.key}>
@@ -499,7 +502,7 @@ function CandidatesContent() {
                   {/* Prétentions */}
                   <details className="group">
                     <summary className="flex items-center justify-between cursor-pointer text-sm font-medium text-gray-700 py-2 border-t border-gray-100 select-none">
-                      <span>💼 Prétentions salariales <span className="text-gray-400 font-normal">(optionnel)</span></span>
+                      <span>💼 {t('addSalaryTitle')} <span className="text-gray-400 font-normal">{t('addSalaryOptional')}</span></span>
                       <span className="text-gray-400 group-open:rotate-180 transition-transform">▾</span>
                     </summary>
                     <div className="mt-3 space-y-3">
@@ -521,7 +524,7 @@ function CandidatesContent() {
                       {addForm.contract_preference === 'CDI' && (
                         <div className="grid grid-cols-2 gap-2">
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">Salaire actuel</label>
+                            <label className="block text-xs text-gray-500 mb-1">{t('addCurrentSalary')}</label>
                             <div className="relative">
                               <input type="text" value={addForm.current_salary}
                                 onChange={e => setAddForm(f => ({ ...f, current_salary: e.target.value }))}
@@ -530,7 +533,7 @@ function CandidatesContent() {
                             </div>
                           </div>
                           <div>
-                            <label className="block text-xs text-gray-500 mb-1">Salaire souhaité</label>
+                            <label className="block text-xs text-gray-500 mb-1">{t('addDesiredSalary')}</label>
                             <div className="relative">
                               <input type="text" value={addForm.desired_salary}
                                 onChange={e => setAddForm(f => ({ ...f, desired_salary: e.target.value }))}
@@ -543,7 +546,7 @@ function CandidatesContent() {
                       {/* Freelance field */}
                       {addForm.contract_preference === 'Freelance' && (
                         <div>
-                          <label className="block text-xs text-gray-500 mb-1">TJM souhaité</label>
+                          <label className="block text-xs text-gray-500 mb-1">{t('addTjm')}</label>
                           <div className="relative max-w-xs">
                             <input type="text" value={addForm.tjm}
                               onChange={e => setAddForm(f => ({ ...f, tjm: e.target.value }))}
@@ -554,7 +557,7 @@ function CandidatesContent() {
                       )}
                       {/* Préavis */}
                       <div>
-                        <label className="block text-xs text-gray-500 mb-1.5">Préavis</label>
+                        <label className="block text-xs text-gray-500 mb-1.5">{t('addNoticePeriod')}</label>
                         <div className="flex flex-wrap gap-1.5">
                           {['Immédiat', '1 mois', '2 mois', '3 mois'].map(p => (
                             <button key={p} type="button"
@@ -572,11 +575,11 @@ function CandidatesContent() {
 
                   {/* Mode rattachement */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Rattachement à une offre</label>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">{t('addAttachMode')}</label>
                     <div className="grid grid-cols-2 gap-3">
                       {([
-                        { mode: 'manual' as AttachMode, icon: '🖐', title: 'Manuel', desc: 'Je choisis l\'offre moi-même' },
-                        { mode: 'auto'   as AttachMode, icon: '🤖', title: 'Automatique IA', desc: 'Le système trouve les meilleures offres' },
+                        { mode: 'manual' as AttachMode, icon: '🖐', title: t('addModeManual'), desc: t('addModeManualDesc') },
+                        { mode: 'auto'   as AttachMode, icon: '🤖', title: t('addModeAuto'), desc: t('addModeAutoDesc') },
                       ] as { mode: AttachMode; icon: string; title: string; desc: string }[]).map(opt => (
                         <button key={opt.mode} type="button" onClick={() => setAttachMode(opt.mode)}
                           className={`flex flex-col items-start gap-1 p-4 rounded-xl border-2 text-left transition-all ${
@@ -598,16 +601,16 @@ function CandidatesContent() {
                   {attachMode === 'manual' && (
                     <div className="space-y-3 p-3 bg-gray-50 rounded-xl border border-gray-100">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Offre d'emploi</label>
+                        <label className="block text-xs font-medium text-gray-600 mb-1">{t('addJobOffer')}</label>
                         <select value={addForm.job_id} onChange={e => setAddForm(f => ({...f, job_id: e.target.value}))}
                           className="w-full border border-gray-200 rounded-lg px-3 py-2 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-emerald-500">
-                          <option value="">— Sans offre pour l'instant —</option>
+                          <option value="">{t('addNoOffer')}</option>
                           {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
                         </select>
                       </div>
                       {addForm.job_id && (
                         <div>
-                          <label className="block text-xs font-medium text-gray-600 mb-1">Étape initiale</label>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">{t('addInitialStage')}</label>
                           <div className="flex gap-2">
                             {['Nouveau', 'Présélectionné', 'Entretien'].map(s => (
                               <button key={s} type="button" onClick={() => setAddForm(f => ({...f, stage: s}))}
@@ -624,8 +627,8 @@ function CandidatesContent() {
                   {/* Auto : info */}
                   {attachMode === 'auto' && (
                     <div className="p-3 bg-purple-50 rounded-xl border border-purple-100 text-xs text-purple-700 leading-relaxed">
-                      🤖 Après ajout, Pintalent analysera le CV et classera les offres actives par compatibilité. Vous choisirez ensuite l'offre à rattacher.
-                      {!addCv && <span className="block mt-1 font-semibold text-purple-600">⚠ Importez un CV pour un matching précis.</span>}
+                      🤖 {t('addAutoInfo')}
+                      {!addCv && <span className="block mt-1 font-semibold text-purple-600">⚠ {t('addAutoNoCv')}</span>}
                     </div>
                   )}
                 </div>
@@ -654,10 +657,10 @@ function CandidatesContent() {
                         className={`flex-1 text-white py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                           attachMode === 'auto' ? 'bg-purple-600 hover:bg-purple-700' : 'bg-emerald-700 hover:bg-emerald-800'
                         }`}>
-                        {attachMode === 'auto' ? '🤖 Ajouter et lancer le matching' : 'Ajouter le candidat'}
+                        {attachMode === 'auto' ? `🤖 ${t('addBtnAuto')}` : t('addBtnManual')}
                       </button>
                       <button onClick={closeAdd} className="px-5 py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                        Annuler
+                        {t('addCancel')}
                       </button>
                     </div>
                   )}
@@ -668,14 +671,14 @@ function CandidatesContent() {
               <>
                 <div className="flex items-center justify-between mb-4 flex-shrink-0">
                   <div>
-                    <h2 className="text-lg font-bold text-gray-900">🎯 Offres recommandées</h2>
-                    <p className="text-xs text-gray-400 mt-0.5">{addedName ? `${addedName} ajouté` : 'Candidat ajouté'} — sélectionnez l'offre à rattacher</p>
+                    <h2 className="text-lg font-bold text-gray-900">🎯 {t('matchingRecommended')}</h2>
+                    <p className="text-xs text-gray-400 mt-0.5">{addedName ? `${addedName} ${t('matchingAddedMsg')}` : t('matchingAdded')}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     {matchResults !== null && !showJobPicker && (
                       <button onClick={() => { setMatchResults(null); setShowJobPicker(true); }}
                         className="text-xs text-gray-400 hover:text-gray-600 px-2 py-1 rounded-lg hover:bg-gray-100 transition-colors">
-                        ← Modifier
+                        {t('matchingModify')}
                       </button>
                     )}
                     <button onClick={closeAdd} className="text-gray-400 hover:text-gray-600 text-xl px-2">✕</button>
@@ -716,21 +719,21 @@ function CandidatesContent() {
                       </div>
 
                       <div>
-                        <p className="text-sm font-semibold text-gray-800 mb-1">Choisissez les offres à analyser</p>
-                        <p className="text-xs text-gray-400">Sélectionnez jusqu&apos;à <span className="font-semibold text-purple-600">10 offres</span> — Pintalent comparera le profil avec chacune.</p>
+                        <p className="text-sm font-semibold text-gray-800 mb-1">{t('matchingSelectOffers')}</p>
+                        <p className="text-xs text-gray-400">{t('matchingSelectDesc')}</p>
                       </div>
 
                       {/* Compteur + actions */}
                       <div className="flex items-center justify-between">
                         <span className={`text-sm font-semibold ${jobSelection.size > 10 ? 'text-emerald-600' : 'text-purple-700'}`}>
-                          {jobSelection.size}/10 sélectionnées
+                          {jobSelection.size}/10 {t('matchingSelected')}
                         </span>
                         <div className="flex gap-2 text-xs">
                           <button onClick={() => setJobSelection(new Set((jobs as {id:string}[]).slice(0,10).map(j=>j.id)))}
-                            className="text-purple-600 hover:text-purple-800 font-medium">Top 10</button>
+                            className="text-purple-600 hover:text-purple-800 font-medium">{t('matchingTop10')}</button>
                           <span className="text-gray-300">|</span>
                           <button onClick={() => setJobSelection(new Set())}
-                            className="text-gray-400 hover:text-gray-600 font-medium">Effacer</button>
+                            className="text-gray-400 hover:text-gray-600 font-medium">{t('matchingClearSelection')}</button>
                         </div>
                       </div>
 
@@ -765,49 +768,49 @@ function CandidatesContent() {
                       <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-2.5">
                         <span className="text-green-500">✓</span>
                         <p className="text-sm text-green-700 font-medium">
-                          <span className="font-bold">{addedName}</span> est enregistré dans votre base
+                          <span className="font-bold">{addedName}</span> {t('matchingRegistered')}
                         </p>
                       </div>
 
                       <button onClick={runMatchingOnSelection} disabled={jobSelection.size === 0 || jobSelection.size > 10}
                         className="w-full py-3 bg-purple-600 hover:bg-purple-700 disabled:opacity-40 text-white font-semibold rounded-xl text-sm transition-colors">
-                        🎯 Lancer le matching sur {jobSelection.size} offre{jobSelection.size !== 1 ? 's' : ''}
+                        🎯 {t('matchingLaunch')} {jobSelection.size} {jobSelection.size !== 1 ? t('matchingOffers') : t('matchingOffer')}
                       </button>
 
                       <button onClick={closeAdd} className="w-full py-2.5 text-sm text-gray-500 hover:text-gray-700 transition-colors">
-                        Terminer sans matching
+                        {t('matchingFinishNoMatch')}
                       </button>
                     </div>
 
                   ) : matchLoading ? (
                     <div className="text-center py-16">
                       <div className="animate-spin w-10 h-10 rounded-full mx-auto mb-4" style={{ border: '3px solid #9333ea30', borderTopColor: '#9333ea' }} />
-                      <p className="text-gray-500 text-sm">Pintalent analyse la compatibilité…</p>
-                      <p className="text-xs text-gray-400 mt-1">Comparaison avec {jobSelection.size} offre{jobSelection.size !== 1 ? 's' : ''} sélectionnée{jobSelection.size !== 1 ? 's' : ''}</p>
+                      <p className="text-gray-500 text-sm">{t('matchingAnalyzing')}</p>
+                      <p className="text-xs text-gray-400 mt-1">{t('matchingComparison')} {jobSelection.size} {jobSelection.size !== 1 ? t('matchingOffers') : t('matchingOffer')}</p>
                     </div>
                   ) : !matchResults || matchResults.length === 0 ? (
                     <div className="flex flex-col items-center py-6 gap-5">
                       {/* Icône + message */}
                       <div className="w-14 h-14 bg-gray-100 rounded-full flex items-center justify-center text-2xl">😶</div>
                       <div className="text-center">
-                        <p className="font-semibold text-gray-800">Aucune offre correspondante</p>
-                        <p className="text-sm text-gray-400 mt-1">Ce profil ne correspond pas aux offres actives actuellement.</p>
+                        <p className="font-semibold text-gray-800">{t('matchingNoOffers')}</p>
+                        <p className="text-sm text-gray-400 mt-1">{t('matchingNoOffersDesc')}</p>
                       </div>
 
                       {/* Confirmation enregistrement */}
                       <div className="flex items-center gap-2 bg-green-50 border border-green-100 rounded-xl px-4 py-2.5 w-full">
                         <span className="text-green-500 text-lg">✓</span>
                         <p className="text-sm text-green-700 font-medium">
-                          {addedName ? <><span className="font-bold">{addedName}</span> est enregistré dans votre base</> : 'Candidat enregistré dans votre base'}
+                          {addedName ? <><span className="font-bold">{addedName}</span> {t('matchingRegistered')}</> : t('matchingRegisteredBase')}
                         </p>
                       </div>
 
                       {/* Rattachement manuel */}
                       <div className="w-full border border-gray-100 rounded-xl p-4 space-y-3">
-                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Rattacher manuellement</p>
+                        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('matchingManualAttach')}</p>
                         <select value={fallbackJobId} onChange={e => { setFallbackJobId(e.target.value); setFallbackScore(null); }}
                           className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm bg-white focus:outline-none focus:ring-2 focus:ring-gray-300">
-                          <option value="">— Choisir une offre —</option>
+                          <option value="">{t('matchingChooseOffer')}</option>
                           {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
                         </select>
 
@@ -848,13 +851,13 @@ function CandidatesContent() {
                             setFallbackScoring(false);
                           }} disabled={!fallbackJobId || fallbackScoring}
                             className="w-full py-2.5 border-2 border-gray-200 hover:border-gray-400 disabled:opacity-40 text-gray-700 rounded-xl text-sm font-semibold transition-colors">
-                            {fallbackScoring ? '🤖 Analyse en cours…' : '🔍 Analyser la compatibilité'}
+                            {fallbackScoring ? `🤖 ${t('matchingAnalyzing2')}` : `🔍 ${t('matchingAnalyzeCompat')}`}
                           </button>
                         ) : (
                           <button onClick={() => attachToJob(fallbackJobId, fallbackScore.score, fallbackScore.recommendation)}
                             disabled={attaching === fallbackJobId}
                             className="w-full py-2.5 bg-gray-900 hover:bg-gray-700 disabled:opacity-40 text-white rounded-xl text-sm font-semibold transition-colors">
-                            {attaching === fallbackJobId ? '⏳ Rattachement…' : '+ Confirmer le rattachement'}
+                            {attaching === fallbackJobId ? `⏳ ${t('matchingAttaching')}` : `+ ${t('matchingConfirmAttach')}`}
                           </button>
                         )}
                       </div>
@@ -888,7 +891,7 @@ function CandidatesContent() {
                               className={`flex-shrink-0 px-3 py-1.5 rounded-lg text-xs font-semibold transition-colors ${
                                 i === 0 ? 'bg-purple-600 hover:bg-purple-700 text-white' : 'bg-gray-100 hover:bg-gray-200 text-gray-700'
                               } disabled:opacity-50`}>
-                              {attaching === r.job_id ? '⏳' : '+ Rattacher'}
+                              {attaching === r.job_id ? '⏳' : t('matchingAttachBtn')}
                             </button>
                           </div>
                         </div>
@@ -899,7 +902,7 @@ function CandidatesContent() {
 
                 <div className="mt-4 pt-4 border-t border-gray-100 flex-shrink-0">
                   <button onClick={() => { closeAdd(); loadApps(); }} className="w-full py-2.5 border border-gray-200 rounded-xl text-sm text-gray-600 hover:bg-gray-50">
-                    Terminer sans rattacher
+                    {t('matchingFinishNoAttach')}
                   </button>
                 </div>
               </>
@@ -910,17 +913,17 @@ function CandidatesContent() {
 
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Candidats</h1>
+          <h1 className="text-2xl font-bold text-gray-900">{t('title')}</h1>
           <p className="text-gray-500 text-sm mt-1">
             {filtered.length !== apps.length
-              ? <><span className="font-semibold text-gray-800">{filtered.length}</span> / {apps.length} candidature(s)</>
-              : <>{apps.length} candidature(s)</>}
+              ? <><span className="font-semibold text-gray-800">{filtered.length}</span> / {apps.length} {t('countSuffix')}</>
+              : <>{apps.length} {t('countSuffix')}</>}
           </p>
         </div>
         {can('candidates.create') && (
           <button onClick={() => setShowAdd(true)}
             className="flex items-center gap-2 bg-emerald-700 hover:bg-emerald-800 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-colors">
-            + Ajouter un candidat
+            + {t('add')}
           </button>
         )}
       </div>
@@ -928,11 +931,11 @@ function CandidatesContent() {
       {/* Filters */}
       <div className="bg-white rounded-2xl border border-gray-100 p-5">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-          <input type="text" placeholder="🔍 Nom, email, téléphone..." value={search} onChange={e => setSearch(e.target.value)}
+          <input type="text" placeholder={`🔍 ${t('search')}`} value={search} onChange={e => setSearch(e.target.value)}
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500" />
           <select value={filterJob} onChange={e => setFilterJob(e.target.value)}
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="">Tous les postes</option>
+            <option value="">{t('filterAllJobs')}</option>
             {jobs.map(j => <option key={j.id} value={j.id}>{j.title}</option>)}
           </select>
           {/* Stage checkbox dropdown */}
@@ -943,9 +946,9 @@ function CandidatesContent() {
               className={`w-full flex items-center justify-between border rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white transition-colors ${filterStages.size > 0 ? 'border-emerald-400 text-emerald-700 font-medium' : 'border-gray-200 text-gray-700'}`}>
               <span>
                 {filterStages.size === 0
-                  ? 'Toutes les étapes'
+                  ? t('filterAllStages')
                   : filterStages.size === 1
-                    ? Array.from(filterStages)[0]
+                    ? tStages(Array.from(filterStages)[0] as Parameters<typeof tStages>[0])
                     : `${filterStages.size} étapes`}
               </span>
               <span className={`ml-2 transition-transform ${stageDropOpen ? 'rotate-180' : ''} text-gray-400`}>▾</span>
@@ -953,10 +956,10 @@ function CandidatesContent() {
             {stageDropOpen && (
               <div className="absolute z-30 top-full mt-1 left-0 w-full bg-white border border-gray-200 rounded-xl shadow-lg py-2 min-w-[180px]">
                 <div className="px-3 pb-2 flex items-center justify-between border-b border-gray-100 mb-1">
-                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Filtrer par étape</span>
+                  <span className="text-xs font-semibold text-gray-500 uppercase tracking-wide">{t('filterByStage')}</span>
                   {filterStages.size > 0 && (
                     <button onClick={() => setFilterStages(new Set())} className="text-xs text-emerald-500 hover:text-emerald-700 font-medium">
-                      Effacer
+                      {t('clearFilters')}
                     </button>
                   )}
                 </div>
@@ -984,13 +987,13 @@ function CandidatesContent() {
           </div>
           <select value={sortBy} onChange={e => setSortBy(e.target.value)}
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="created_at">Trier par date</option>
-            <option value="score">Trier par score</option>
+            <option value="created_at">{t('sortByDate')}</option>
+            <option value="score">{t('sortByScore')}</option>
           </select>
           <select value={sortOrder} onChange={e => setSortOrder(e.target.value)}
             className="border border-gray-200 rounded-xl px-4 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-emerald-500 bg-white">
-            <option value="DESC">Décroissant</option>
-            <option value="ASC">Croissant</option>
+            <option value="DESC">{t('sortDesc')}</option>
+            <option value="ASC">{t('sortAsc')}</option>
           </select>
         </div>
       </div>
@@ -998,19 +1001,19 @@ function CandidatesContent() {
       {/* Barre actions sélection */}
       {selected.size > 0 && (
         <div className="flex items-center gap-4 bg-emerald-50 border border-emerald-100 rounded-xl px-5 py-3 flex-wrap">
-          <span className="text-sm font-medium text-emerald-700">{selected.size} candidat{selected.size > 1 ? 's' : ''} sélectionné{selected.size > 1 ? 's' : ''}</span>
+          <span className="text-sm font-medium text-emerald-700">{selected.size} {selected.size > 1 ? t('selectionCountPlural') : t('selectionCount')}</span>
           <button
             onClick={() => extractProfile(Array.from(selected))}
             disabled={extracting.size > 0}
             className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-            {extracting.size > 0 ? '⏳ Extraction…' : '✨ Relancer l\'extraction'}
+            {extracting.size > 0 ? '⏳' : '✨'} {t('relaunchExtraction')}
           </button>
           {can('candidates.delete') && (
             <button onClick={deleteSelected} className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-              🗑 Supprimer la sélection
+              🗑 {t('actionsDelete')}
             </button>
           )}
-          <button onClick={() => setSelected(new Set())} className="text-sm text-emerald-400 hover:text-emerald-600">Annuler</button>
+          <button onClick={() => setSelected(new Set())} className="text-sm text-emerald-400 hover:text-emerald-600">{t('addCancel')}</button>
         </div>
       )}
 
@@ -1018,13 +1021,13 @@ function CandidatesContent() {
       {selected.size === 0 && apps.some(a => !a.current_title || !a.years_experience) && (
         <div className="flex items-center gap-3 bg-purple-50 border border-purple-100 rounded-xl px-5 py-3">
           <span className="text-sm text-purple-700">
-            <span className="font-semibold">{apps.filter(a => !a.current_title || !a.years_experience).length}</span> candidat(s) sans titre ou expérience
+            <span className="font-semibold">{apps.filter(a => !a.current_title || !a.years_experience).length}</span> {t('extractionMissing')}
           </span>
           <button
             onClick={() => extractProfile(apps.filter(a => !a.current_title || !a.years_experience).map(a => a.candidate_id))}
             disabled={extracting.size > 0}
             className="flex items-center gap-1.5 bg-purple-600 hover:bg-purple-700 disabled:opacity-50 text-white px-4 py-1.5 rounded-lg text-sm font-semibold transition-colors">
-            {extracting.size > 0 ? `⏳ ${extracting.size} en cours…` : '✨ Relancer l\'extraction'}
+            {extracting.size > 0 ? `⏳ ${extracting.size}…` : `✨ ${t('relaunchExtraction')}`}
           </button>
         </div>
       )}
@@ -1038,7 +1041,7 @@ function CandidatesContent() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-400">
             <div className="text-4xl mb-3">👥</div>
-            <div className="font-medium">Aucun candidat trouvé</div>
+            <div className="font-medium">{t('noCandidates')}</div>
           </div>
         ) : (
           <table className="w-full">
@@ -1052,14 +1055,14 @@ function CandidatesContent() {
                     className="w-4 h-4 rounded accent-emerald-600 cursor-pointer" />
                 </th>
                 {([
-                  { key: 'name',  label: 'Candidat' },
-                  { key: 'title', label: 'Titre' },
-                  { key: 'exp',   label: 'Expérience' },
-                  { key: 'job',   label: 'Poste' },
-                  { key: 'score', label: 'Score' },
-                  { key: 'reco',  label: 'Recommandation' },
-                  { key: 'stage', label: 'Étape' },
-                  { key: 'date',  label: 'Date' },
+                  { key: 'name',  label: t('colCandidate') },
+                  { key: 'title', label: t('colTitle') },
+                  { key: 'exp',   label: t('colExperience') },
+                  { key: 'job',   label: t('colJob') },
+                  { key: 'score', label: t('colScore') },
+                  { key: 'reco',  label: t('colReco') },
+                  { key: 'stage', label: t('colStage') },
+                  { key: 'date',  label: t('colDate') },
                 ] as { key: string; label: string }[]).map(col => (
                   <th key={col.key} onClick={() => col.key !== 'reco' && sortByCol(col.key)}
                     className={`text-left px-4 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wide select-none ${col.key !== 'reco' ? 'cursor-pointer hover:text-gray-800' : ''}`}>
@@ -1092,7 +1095,7 @@ function CandidatesContent() {
                         {(app.name || app.email || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900 text-sm">{app.name || <span className="text-gray-400 italic text-xs">Nom en cours d&apos;extraction…</span>}</div>
+                        <div className="font-semibold text-gray-900 text-sm">{app.name || <span className="text-gray-400 italic text-xs">{t('nameExtracting')}</span>}</div>
                         <div className="text-xs text-gray-400">{app.email}</div>
                       </div>
                     </div>
@@ -1123,7 +1126,7 @@ function CandidatesContent() {
                     {app.job_title
                       ? <><div className="text-sm text-gray-700 font-medium">{app.job_title}</div>
                           <div className="text-xs text-gray-400">{app.department}</div></>
-                      : <span className="text-xs text-gray-300 italic">Sans offre</span>}
+                      : <span className="text-xs text-gray-300 italic">{t('noOffer')}</span>}
                   </td>
                   <td className="px-4 py-4">
                     {app.score ? <ScoreBar score={app.score} /> : <span className="text-xs text-gray-300">–</span>}
@@ -1140,12 +1143,13 @@ function CandidatesContent() {
                         </span>
                       : <span className="text-xs text-gray-300">–</span>}
                   </td>
-                  <td className="px-4 py-4 text-sm text-gray-400">
-                    {new Date(app.created_at || app.updated_at).toLocaleDateString('fr-FR')}
+                  <td className="px-4 py-4 text-sm text-gray-400 whitespace-nowrap">
+                    <div>{new Date(app.created_at || app.updated_at).toLocaleDateString('fr-FR')}</div>
+                    <div className="text-xs text-gray-300">{new Date(app.created_at || app.updated_at).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' })}</div>
                   </td>
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-2">
-                      <Link href={`/hr/candidates/${app.id ?? app.candidate_id}`} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap">Voir →</Link>
+                      <Link href={`/hr/candidates/${app.id ?? app.candidate_id}`} className="text-sm text-emerald-600 hover:text-emerald-700 font-medium whitespace-nowrap">{t('view')}</Link>
                       {can('candidates.delete') && (
                         <button onClick={() => deleteCandidate(app.candidate_id, app.name)}
                           disabled={deleting === app.candidate_id}
