@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, Fragment } from 'react';
 
 interface Automation {
   id: string;
@@ -312,8 +312,8 @@ export default function AIAgentPage() {
               </thead>
               <tbody className="divide-y divide-gray-50">
                 {filteredLogs.map(log => (
-                  <>
-                    <tr key={log.id} className="hover:bg-gray-50 transition-colors">
+                  <Fragment key={log.id}>
+                    <tr className="hover:bg-gray-50 transition-colors">
                       <td className="px-4 py-4">
                         {log.status === 'success' ? (
                           <span className="inline-flex items-center gap-1 bg-emerald-50 text-emerald-700 text-xs font-bold px-3 py-1.5 rounded-full">
@@ -363,13 +363,13 @@ export default function AIAgentPage() {
                       </td>
                     </tr>
                     {expandedLog === log.id && (
-                      <tr key={log.id + '-detail'} className="bg-gray-50">
+                      <tr className="bg-gray-50">
                         <td colSpan={7} className="px-6 py-3">
                           <p className="text-xs text-gray-500 font-mono">{log.message}</p>
                         </td>
                       </tr>
                     )}
-                  </>
+                  </Fragment>
                 ))}
               </tbody>
             </table>
