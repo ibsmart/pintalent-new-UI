@@ -28,20 +28,34 @@ function extractContactFromText(text: string): ExtractedContact {
   const emailMatch = text.match(/[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}/);
   const phoneMatch = text.match(/(\+?[\d\s\-().]{7,20})/);
   const linkedinMatch = text.match(/linkedin\.com\/in\/([a-zA-Z0-9\-_%]+)/i);
-  // Name: first non-empty line that looks like a name (2+ capitalized words, no special chars)
+
+  // Name extraction — multiple strategies
   const lines = text.split(/\n/).map(l => l.trim()).filter(Boolean);
   let name = '';
-  for (const line of lines.slice(0, 10)) {
-    if (/^[A-ZÀ-Ú][a-zA-ZÀ-ú\-]+([\s][A-ZÀ-Ú][a-zA-ZÀ-ú\-]+)+$/.test(line) && line.length < 60) {
+
+  for (const line of lines.slice(0, 15)) {
+    // Skip lines that look like section headers, emails, URLs, phone numbers
+    if (/[@\/\\.com|http|tel:|mob:|tél|email|phone|linkedin|github|adresse|né|born|\d{4}]/i.test(line)) continue;
+    if (line.length > 80 || line.length < 3) continue;
+
+    // Strategy 1: Title case — "Prénom Nom" or "Prénom Nom Autre" (2-4 words)
+    if (/^[A-ZÀ-ÿ][a-zA-ZÀ-ÿ\-']+([\s\-][A-ZÀ-ÿ][a-zA-ZÀ-ÿ\-']+){1,3}$/.test(line)) {
       name = line; break;
     }
+    // Strategy 2: ALL CAPS name — "BELLAMINE ISMAIL" or "JEAN-PIERRE MARTIN"
+    if (/^[A-ZÀ-ÿ\-']{2,}([\s][A-ZÀ-ÿ\-']{2,}){1,3}$/.test(line) && line === line.toUpperCase()) {
+      // Convert "BELLAMINE ISMAIL" → "Bellamine Ismail"
+      name = line.split(/\s+/).map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase()).join(' ');
+      break;
+    }
   }
+
   return {
     name,
     email: emailMatch?.[0] || '',
     phone: phoneMatch?.[0]?.trim() || '',
     linkedin: linkedinMatch ? `https://linkedin.com/in/${linkedinMatch[1]}` : '',
-    current_title: '', // will be filled by background Claude call
+    current_title: '',
     key_skills: '',
     years_experience: '',
   };

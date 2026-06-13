@@ -1089,10 +1089,10 @@ function CandidatesContent() {
                   <td className="px-4 py-4">
                     <div className="flex items-center gap-3">
                       <div className="w-9 h-9 bg-gray-100 rounded-full flex items-center justify-center font-semibold text-gray-700 text-sm flex-shrink-0">
-                        {app.name.charAt(0).toUpperCase()}
+                        {(app.name || app.email || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900 text-sm">{app.name}</div>
+                        <div className="font-semibold text-gray-900 text-sm">{app.name || <span className="text-gray-400 italic text-xs">Nom en cours d&apos;extraction…</span>}</div>
                         <div className="text-xs text-gray-400">{app.email}</div>
                       </div>
                     </div>
