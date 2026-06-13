@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Settings, darken } from '@/lib/useSettings';
 import { Filters, RecruitmentProcess, Footer, LoadingSkeleton, Empty } from './Classic';
 
@@ -19,6 +20,7 @@ export default function ModernTemplate({ jobs, filtered, s, search, setSearch, d
   const primary = s.primary_color || '#b91c1c';
   const companyName = s.company_name || 'GEEKFACT';
   const logoInitials = s.logo_initials || 'GF';
+  const [menuOpen, setMenuOpen] = useState(false);
   const stats = [1,2,3,4].map(n => ({ value: s[`stat${n}_value`], label: s[`stat${n}_label`] })).filter(v => v.value);
   const values = [1,2,3,4].map(n => ({ icon: s[`value${n}_icon`], title: s[`value${n}_title`], desc: s[`value${n}_desc`] })).filter(v => v.title);
 
@@ -26,43 +28,56 @@ export default function ModernTemplate({ jobs, filtered, s, search, setSearch, d
     <div className="min-h-screen bg-white">
       {/* Header — dark */}
       <header className="bg-gray-950 text-white sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 rounded-lg flex items-center justify-center overflow-hidden" style={{ backgroundColor: primary }}>
-              {s.logo_url ? <img src={s.logo_url} alt={companyName} className="w-8 h-8 object-contain" /> : <span className="text-white font-bold text-xs">{logoInitials}</span>}
-            </div>
-            <span className="font-bold text-lg tracking-tight">{companyName}</span>
+            {s.logo_url
+              ? <img src={s.logo_url} alt={companyName} className="h-9 w-auto object-contain" />
+              : <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ backgroundColor: primary }}><span className="text-white font-bold text-xs">{logoInitials}</span></div>
+            }
+            <span className="font-bold text-base tracking-tight">{companyName}</span>
           </div>
-          <nav className="flex items-center gap-8">
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-8">
             <a href="#offres" className="text-sm text-gray-400 hover:text-white transition-colors">Offres</a>
             <a href="#about" className="text-sm text-gray-400 hover:text-white transition-colors">À propos</a>
-            <Link href="/hr/dashboard" className="text-sm font-semibold px-4 py-2 rounded-lg border transition-colors hover:text-white" style={{ color: primary, borderColor: primary }}>
-              Espace RH
-            </Link>
+            <Link href="/hr/dashboard" className="text-sm font-semibold px-4 py-2 rounded-lg border transition-colors hover:text-white" style={{ color: primary, borderColor: primary }}>Espace RH</Link>
           </nav>
+          {/* Hamburger */}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-gray-800 transition-colors">
+            <span className={`block w-5 h-0.5 bg-gray-300 transition-transform ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-300 transition-opacity ${menuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-300 transition-transform ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
         </div>
+        {menuOpen && (
+          <div className="md:hidden border-t border-gray-800 bg-gray-950 px-4 py-3 flex flex-col gap-1">
+            <a href="#offres" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">Offres</a>
+            <a href="#about" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm text-gray-300 hover:text-white hover:bg-gray-800 rounded-lg">À propos</a>
+            <Link href="/hr/dashboard" onClick={() => setMenuOpen(false)} className="mt-1 py-2.5 px-3 text-sm font-semibold text-center rounded-lg border" style={{ color: primary, borderColor: primary }}>Espace RH</Link>
+          </div>
+        )}
       </header>
 
       {/* Hero — split layout */}
       <section className="bg-gray-950 text-white">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 lg:py-28 grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 sm:py-20 lg:py-28 grid grid-cols-1 lg:grid-cols-2 gap-10 items-center">
           <div>
-            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider mb-8" style={{ backgroundColor: `${primary}25`, color: primary }}>
+            <div className="inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs font-semibold uppercase tracking-wider mb-6" style={{ backgroundColor: `${primary}25`, color: primary }}>
               <span className="w-1.5 h-1.5 rounded-full animate-pulse" style={{ backgroundColor: primary }} />
               {loading ? '…' : jobs.length} {s.hero_badge || 'postes ouverts'}
             </div>
-            <h1 className="text-5xl lg:text-7xl font-black leading-none mb-6 tracking-tight">
+            <h1 className="text-3xl sm:text-5xl lg:text-7xl font-black leading-none mb-5 tracking-tight">
               {(s.hero_title || `Rejoignez ${companyName}`).split(' ').map((word, i) => (
                 <span key={i}>{i === 1 ? <span style={{ color: primary }}>{word} </span> : `${word} `}</span>
               ))}
             </h1>
-            <p className="text-gray-400 text-lg leading-relaxed mb-10 max-w-lg">{s.hero_subtitle}</p>
-            <div className="flex flex-wrap gap-4">
-              <a href="#offres" className="inline-flex items-center gap-2 text-white font-bold px-8 py-4 rounded-2xl transition-colors text-base" style={{ backgroundColor: primary }}>
+            <p className="text-gray-400 text-base sm:text-lg leading-relaxed mb-8 max-w-lg">{s.hero_subtitle}</p>
+            <div className="flex flex-col sm:flex-row gap-3">
+              <a href="#offres" className="inline-flex items-center justify-center gap-2 text-white font-bold px-6 py-3.5 rounded-2xl transition-colors text-base" style={{ backgroundColor: primary }}>
                 {s.cta_primary || 'Voir les offres'} <span>→</span>
               </a>
               {s.cta_secondary && (
-                <a href="#about" className="inline-flex items-center gap-2 text-gray-400 hover:text-white font-medium px-8 py-4 rounded-2xl border border-gray-700 hover:border-gray-500 transition-colors text-base">
+                <a href="#about" className="inline-flex items-center justify-center gap-2 text-gray-400 hover:text-white font-medium px-6 py-3.5 rounded-2xl border border-gray-700 hover:border-gray-500 transition-colors text-base">
                   {s.cta_secondary}
                 </a>
               )}

@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Settings } from '@/lib/useSettings';
 import { RecruitmentProcess, Footer, Empty } from './Classic';
 
@@ -26,35 +27,50 @@ export default function MinimalTemplate({ jobs, filtered, s, search, setSearch, 
   const primary = s.primary_color || '#b91c1c';
   const companyName = s.company_name || 'GEEKFACT';
   const logoInitials = s.logo_initials || 'GF';
+  const [menuOpen, setMenuOpen] = useState(false);
   const values = [1,2,3,4].map(n => ({ icon: s[`value${n}_icon`], title: s[`value${n}_title`], desc: s[`value${n}_desc`] })).filter(v => v.title);
 
   return (
     <div className="min-h-screen bg-white">
       {/* Header — ultra minimal */}
       <header className="border-b border-gray-100 sticky top-0 bg-white/95 backdrop-blur-sm z-50">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+        <div className="max-w-5xl mx-auto px-4 sm:px-6 py-3 flex items-center justify-between">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden" style={{ backgroundColor: primary }}>
-              {s.logo_url ? <img src={s.logo_url} alt={companyName} className="w-7 h-7 object-contain" /> : <span className="text-white font-bold text-xs">{logoInitials}</span>}
-            </div>
-            <span className="font-semibold text-gray-900">{companyName}</span>
+            {s.logo_url
+              ? <img src={s.logo_url} alt={companyName} className="h-8 w-auto object-contain" />
+              : <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ backgroundColor: primary }}><span className="text-white font-bold text-xs">{logoInitials}</span></div>
+            }
+            <span className="font-semibold text-gray-900 text-sm">{companyName}</span>
           </div>
-          <div className="flex items-center gap-6">
+          {/* Desktop nav */}
+          <div className="hidden sm:flex items-center gap-6">
             <a href="#offres" className="text-sm text-gray-500 hover:text-gray-900 transition-colors">Offres ({jobs.length})</a>
             <Link href="/hr/dashboard" className="text-sm font-medium transition-colors hover:opacity-80" style={{ color: primary }}>Espace RH →</Link>
           </div>
+          {/* Mobile nav */}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="sm:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-gray-100 transition-colors">
+            <span className={`block w-5 h-0.5 bg-gray-600 transition-transform ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-600 transition-opacity ${menuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-600 transition-transform ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
         </div>
+        {menuOpen && (
+          <div className="sm:hidden border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-1">
+            <a href="#offres" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm text-gray-600 hover:bg-gray-50 rounded-lg">Offres ({jobs.length})</a>
+            <Link href="/hr/dashboard" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium rounded-lg" style={{ color: primary }}>Espace RH →</Link>
+          </div>
+        )}
       </header>
 
       {/* Hero — centered, minimal */}
-      <section className="py-24 lg:py-32 bg-white">
-        <div className="max-w-3xl mx-auto px-6 text-center">
-          <div className="inline-flex items-center gap-2 text-xs font-medium tracking-widest uppercase text-gray-400 mb-8">
+      <section className="py-14 sm:py-24 lg:py-32 bg-white">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 text-center">
+          <div className="inline-flex items-center gap-2 text-xs font-medium tracking-widest uppercase text-gray-400 mb-6 sm:mb-8">
             <span className="w-6 h-px bg-gray-300" />
             {loading ? '…' : jobs.length} {s.hero_badge || 'postes ouverts'}
             <span className="w-6 h-px bg-gray-300" />
           </div>
-          <h1 className="text-5xl lg:text-7xl font-light text-gray-900 leading-tight tracking-tight mb-6">
+          <h1 className="text-3xl sm:text-5xl lg:text-7xl font-light text-gray-900 leading-tight tracking-tight mb-5 sm:mb-6">
             {s.hero_title || `Rejoignez ${companyName}`}
           </h1>
           <div className="w-12 h-0.5 mx-auto mb-6 rounded" style={{ backgroundColor: primary }} />
