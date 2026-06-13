@@ -14,7 +14,7 @@ export async function sendEmail(params: {
   const port = parseInt(getSetting('smtp_port') || '587');
   const user = getSetting('smtp_user');
   const pass = getSetting('smtp_password');
-  const fromName = getSetting('smtp_from_name');
+  const fromName = getSetting('company_name') || getSetting('smtp_from_name');
   const fromEmail = getSetting('smtp_from_email');
   const secure = getSetting('smtp_secure') === 'true';
 
