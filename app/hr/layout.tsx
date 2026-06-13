@@ -68,29 +68,29 @@ const NAV_GROUPS = [
   {
     label: 'Pilotage',
     items: [
-      { href: '/hr/dashboard',    label: 'Tableau de bord',  icon: <IconGrid />,      countKey: '', soon: false },
-      { href: '/hr/jobs',         label: 'Offres d\'emploi', icon: <IconBriefcase />, countKey: 'jobs' },
-      { href: '/hr/candidates',   label: 'Candidats',        icon: <IconUsers />,     countKey: 'candidates' },
-      { href: '/hr/pipeline',     label: 'Pipeline',         icon: <IconKanban />,    countKey: '' },
-      { href: '/hr/projects',     label: 'Campagnes',        icon: <IconCalendar />,  countKey: '' },
+      { href: '/hr/dashboard',    label: 'Tableau de bord',  Icon: IconGrid,      countKey: '', soon: false },
+      { href: '/hr/jobs',         label: 'Offres d\'emploi', Icon: IconBriefcase, countKey: 'jobs' },
+      { href: '/hr/candidates',   label: 'Candidats',        Icon: IconUsers,     countKey: 'candidates' },
+      { href: '/hr/pipeline',     label: 'Pipeline',         Icon: IconKanban,    countKey: '' },
+      { href: '/hr/projects',     label: 'Campagnes',        Icon: IconCalendar,  countKey: '' },
     ],
   },
   {
     label: 'Analyse & Outils',
     items: [
-      { href: '/hr/ai-agent',     label: 'AI Agent',           icon: <IconRobot />,    countKey: '' },
-      { href: '',                  label: 'Vivier de talents', icon: <IconStar />,     countKey: '', soon: true },
-      { href: '/hr/job-boards',   label: 'Diffusion offres',  icon: <IconSatellite />,countKey: '' },
-      { href: '/hr/prospecting',  label: 'Prospection email', icon: <IconMail />,     countKey: '' },
+      { href: '/hr/ai-agent',    label: 'AI Agent',          Icon: IconRobot,     countKey: '' },
+      { href: '',                label: 'Vivier de talents',  Icon: IconStar,      countKey: '', soon: true },
+      { href: '/hr/job-boards',  label: 'Diffusion offres',  Icon: IconSatellite, countKey: '' },
+      { href: '/hr/prospecting', label: 'Prospection email', Icon: IconMail,      countKey: '' },
     ],
   },
   {
     label: 'Administration',
     items: [
-      { href: '/hr/settings',       label: 'Personnalisation', icon: <IconPalette />,  countKey: '' },
-      { href: '/hr/team',           label: 'Équipe',           icon: <IconTeam />,     countKey: '' },
-      { href: '/hr/cv-templates',   label: 'Templates CV',     icon: <IconGlobe />,    countKey: '' },
-      { href: '/hr/email-settings', label: 'Paramètres',       icon: <IconSettings />, countKey: '' },
+      { href: '/hr/settings',       label: 'Personnalisation', Icon: IconPalette,  countKey: '' },
+      { href: '/hr/team',           label: 'Équipe',           Icon: IconTeam,     countKey: '' },
+      { href: '/hr/cv-templates',   label: 'Templates CV',     Icon: IconGlobe,    countKey: '' },
+      { href: '/hr/email-settings', label: 'Paramètres',       Icon: IconSettings, countKey: '' },
     ],
   },
 ];
@@ -170,7 +170,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
                       key={item.href + item.label}
                       className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium opacity-40 cursor-not-allowed select-none"
                     >
-                      <span className="flex-shrink-0 text-gray-500">{item.icon}</span>
+                      <span className="flex-shrink-0 text-gray-500"><item.Icon /></span>
                       <span className="flex-1 truncate text-gray-400">{item.label}</span>
                       <span className="ml-auto text-[10px] font-bold px-2 py-0.5 rounded-full bg-gray-700 text-gray-400 uppercase tracking-wide">Soon</span>
                     </div>
@@ -187,7 +187,7 @@ export default function HRLayout({ children }: { children: React.ReactNode }) {
                     }`}
                   >
                     <span className={`flex-shrink-0 transition-colors ${active ? 'text-white' : 'text-gray-500 group-hover:text-gray-300'}`}>
-                      {item.icon}
+                      <item.Icon />
                     </span>
                     <span className="flex-1 truncate">{item.label}</span>
                     {count > 0 && <Badge n={count} />}
