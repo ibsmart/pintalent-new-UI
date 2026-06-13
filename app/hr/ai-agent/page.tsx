@@ -389,7 +389,7 @@ export default function AIAgentPage() {
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
           <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={() => setShowForm(false)} />
-          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-2xl overflow-hidden">
+          <div className="relative bg-white rounded-2xl shadow-2xl w-full max-w-4xl overflow-hidden">
 
             {/* Modal header */}
             <div className="px-7 pt-6 pb-4 border-b border-gray-100">
@@ -499,7 +499,7 @@ export default function AIAgentPage() {
                 </div>
 
                 {/* Right — Résumé (email) or Payload (webhook) */}
-                <div className="w-64 flex flex-col bg-gray-50">
+                <div className="w-80 flex flex-col bg-gray-50">
                   {form.action_type === 'send_email' ? (
                     <div className="px-6 py-6 flex flex-col gap-4">
                       <p className="text-[11px] font-bold text-gray-400 uppercase tracking-widest">Résumé</p>
@@ -566,7 +566,7 @@ export default function AIAgentPage() {
                       {/* JSON preview */}
                       <div className="flex-1 overflow-auto">
                         <p className="px-5 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-800 text-gray-300">Aperçu JSON</p>
-                        <pre className="bg-gray-900 text-emerald-400 text-[10px] font-mono px-4 py-3 overflow-auto leading-relaxed h-48">
+                        <pre className="bg-gray-900 text-emerald-400 text-[10px] font-mono px-4 py-3 overflow-auto leading-relaxed h-64">
 {`{
 ${form.payload_fields.map(f => {
   const examples: Record<string,string> = {
