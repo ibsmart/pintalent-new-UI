@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { Settings, darken } from '@/lib/useSettings';
 
 interface Job {
@@ -25,6 +26,7 @@ export default function ClassicTemplate({ jobs, filtered, s, search, setSearch, 
   const primary = s.primary_color || '#b91c1c';
   const companyName = s.company_name || 'GEEKFACT';
   const logoInitials = s.logo_initials || 'GF';
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const stats = [1,2,3,4].map(n => ({ value: s[`stat${n}_value`], label: s[`stat${n}_label`] })).filter(v => v.value);
   const values = [1,2,3,4].map(n => ({ icon: s[`value${n}_icon`], title: s[`value${n}_title`], desc: s[`value${n}_desc`] })).filter(v => v.title);
@@ -33,23 +35,42 @@ export default function ClassicTemplate({ jobs, filtered, s, search, setSearch, 
     <div className="min-h-screen bg-white">
       {/* Header */}
       <header className="bg-white border-b border-gray-100 sticky top-0 z-50 shadow-sm">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3 flex items-center justify-between">
+          {/* Logo */}
+          <div className="flex items-center gap-3 min-w-0">
             {s.logo_url
-              ? <img src={s.logo_url} alt={companyName} className="h-14 w-auto object-contain" />
-              : <div className="w-10 h-10 rounded-xl flex items-center justify-center shadow" style={{ backgroundColor: primary }}><span className="text-white font-bold text-sm">{logoInitials}</span></div>
+              ? <img src={s.logo_url} alt={companyName} className="h-10 w-auto object-contain flex-shrink-0" />
+              : <div className="w-9 h-9 rounded-xl flex items-center justify-center shadow flex-shrink-0" style={{ backgroundColor: primary }}><span className="text-white font-bold text-sm">{logoInitials}</span></div>
             }
-            <div>
-              <div className="font-bold text-gray-900 text-lg">{companyName}</div>
+            <div className="min-w-0">
+              <div className="font-bold text-gray-900 text-base leading-tight truncate">{companyName}</div>
               <div className="text-xs text-gray-500">Espace Carrières</div>
             </div>
           </div>
-          <nav className="flex items-center gap-6">
+
+          {/* Desktop nav */}
+          <nav className="hidden md:flex items-center gap-6">
             <a href="#offres" className="text-sm text-gray-600 hover:text-gray-900 font-medium">Nos offres</a>
             <a href="#about" className="text-sm text-gray-600 hover:text-gray-900 font-medium">À propos</a>
             <Link href="/hr/dashboard" className="text-sm text-white px-4 py-2 rounded-lg font-medium" style={{ backgroundColor: primary }}>Espace RH</Link>
           </nav>
+
+          {/* Mobile hamburger */}
+          <button onClick={() => setMenuOpen(!menuOpen)} className="md:hidden flex flex-col gap-1.5 p-2 rounded-lg hover:bg-gray-100 transition-colors flex-shrink-0">
+            <span className={`block w-5 h-0.5 bg-gray-700 transition-transform ${menuOpen ? 'rotate-45 translate-y-2' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-700 transition-opacity ${menuOpen ? 'opacity-0' : ''}`} />
+            <span className={`block w-5 h-0.5 bg-gray-700 transition-transform ${menuOpen ? '-rotate-45 -translate-y-2' : ''}`} />
+          </button>
         </div>
+
+        {/* Mobile menu dropdown */}
+        {menuOpen && (
+          <div className="md:hidden border-t border-gray-100 bg-white px-4 py-3 flex flex-col gap-1">
+            <a href="#offres" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">Nos offres</a>
+            <a href="#about" onClick={() => setMenuOpen(false)} className="py-2.5 px-3 text-sm font-medium text-gray-700 hover:bg-gray-50 rounded-lg">À propos</a>
+            <Link href="/hr/dashboard" onClick={() => setMenuOpen(false)} className="mt-1 py-2.5 px-3 text-sm font-semibold text-white text-center rounded-lg" style={{ backgroundColor: primary }}>Espace RH</Link>
+          </div>
+        )}
       </header>
 
       {/* Hero */}
@@ -58,17 +79,17 @@ export default function ClassicTemplate({ jobs, filtered, s, search, setSearch, 
           <div className="absolute top-10 left-10 w-72 h-72 rounded-full bg-white blur-3xl" />
           <div className="absolute bottom-0 right-20 w-96 h-96 rounded-full bg-white/30 blur-3xl" />
         </div>
-        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-24 lg:py-32">
+        <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-14 sm:py-20 lg:py-32">
           <div className="max-w-3xl">
-            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm mb-6">
+            <div className="inline-flex items-center gap-2 bg-white/10 border border-white/20 rounded-full px-4 py-2 text-sm mb-5">
               <span className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
               <span>{loading ? '…' : jobs.length} {s.hero_badge || 'postes ouverts'}</span>
             </div>
-            <h1 className="text-4xl lg:text-6xl font-bold leading-tight mb-6">{s.hero_title || `Rejoignez ${companyName}`}</h1>
-            <p className="text-lg lg:text-xl opacity-90 mb-8 max-w-2xl leading-relaxed">{s.hero_subtitle}</p>
-            <div className="flex flex-wrap gap-4">
-              <a href="#offres" className="bg-white px-8 py-4 rounded-xl font-semibold hover:bg-white/90 transition-colors shadow-lg text-base" style={{ color: primary }}>{s.cta_primary || 'Voir les offres →'}</a>
-              {s.cta_secondary && <a href="#about" className="border border-white/30 text-white px-8 py-4 rounded-xl font-semibold hover:bg-white/10 transition-colors text-base">{s.cta_secondary}</a>}
+            <h1 className="text-3xl sm:text-4xl lg:text-6xl font-bold leading-tight mb-4 sm:mb-6">{s.hero_title || `Rejoignez ${companyName}`}</h1>
+            <p className="text-base sm:text-lg lg:text-xl opacity-90 mb-6 sm:mb-8 max-w-2xl leading-relaxed">{s.hero_subtitle}</p>
+            <div className="flex flex-col sm:flex-row gap-3 sm:gap-4">
+              <a href="#offres" className="bg-white px-6 py-3.5 rounded-xl font-semibold hover:bg-white/90 transition-colors shadow-lg text-base text-center" style={{ color: primary }}>{s.cta_primary || 'Voir les offres →'}</a>
+              {s.cta_secondary && <a href="#about" className="border border-white/30 text-white px-6 py-3.5 rounded-xl font-semibold hover:bg-white/10 transition-colors text-base text-center">{s.cta_secondary}</a>}
             </div>
           </div>
         </div>
