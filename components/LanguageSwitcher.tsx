@@ -1,26 +1,32 @@
 'use client';
-import { useLocale } from 'next-intl';
-import { usePathname, useRouter } from 'next/navigation';
+import { usePathname } from 'next/navigation';
 
 export default function LanguageSwitcher() {
-  const locale = useLocale();
   const pathname = usePathname();
-  const router = useRouter();
+
+  // Derive current locale from URL
+  const currentLocale = pathname.startsWith('/en') ? 'en' : 'fr';
 
   function switchLocale(newLocale: string) {
-    // Replace current locale prefix with new one
+    if (newLocale === currentLocale) return;
+    // Replace locale prefix in URL and do a hard redirect
     const segments = pathname.split('/');
     segments[1] = newLocale;
-    router.push(segments.join('/'));
+    window.location.href = segments.join('/');
   }
 
   return (
     <div className="flex items-center gap-1">
       {(['fr', 'en'] as const).map(l => (
-        <button key={l} onClick={() => switchLocale(l)}
+        <button
+          key={l}
+          onClick={() => switchLocale(l)}
           className={`px-2 py-1 text-xs font-bold rounded-lg transition-colors uppercase ${
-            locale === l ? 'bg-gray-700 text-white' : 'text-gray-500 hover:text-white hover:bg-gray-800'
-          }`}>
+            currentLocale === l
+              ? 'bg-emerald-700 text-white'
+              : 'text-gray-400 hover:text-white hover:bg-gray-800'
+          }`}
+        >
           {l}
         </button>
       ))}
