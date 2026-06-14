@@ -431,6 +431,8 @@
     "tabAbout": "About",
     "tabContact": "Contact & Footer",
     "tabSeo": "SEO",
+    "fieldNotificationScoreThreshold": "Email notification score threshold",
+    "fieldNotificationScoreThresholdHint": "Only send email if candidate AI score ≥ this threshold (0 = always send)",
     "fieldCompanyName": "Company name",
     "fieldLogoInitials": "Logo initials",
     "fieldLogoInitialsHint": "Displayed if no logo URL",

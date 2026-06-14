@@ -246,6 +246,13 @@ export async function POST(req: NextRequest) {
       const companyName = getSetting('company_name') || 'Pintalent';
       const baseUrl = getSetting('base_url') || 'http://localhost:3000';
       const primaryColor = getSetting('primary_color') || '#10b981';
+      const notifThreshold = parseInt(getSetting('notification_score_threshold') || '0', 10);
+
+      // Check score threshold — skip email if score is below the configured minimum
+      if (notifThreshold > 0 && scoreResult.score < notifThreshold) {
+        console.log(`[notify] Skipped — score ${scoreResult.score} < threshold ${notifThreshold}`);
+        return;
+      }
 
       const html = `
         <div style="font-family:sans-serif;max-width:600px;margin:0 auto;background:#f9fafb;padding:24px;border-radius:12px;">

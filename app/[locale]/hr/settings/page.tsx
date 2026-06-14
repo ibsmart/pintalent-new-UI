@@ -232,6 +232,26 @@ export default function SettingsPage() {
                 <input value={settings.logo_url || ''} onChange={e => set('logo_url', e.target.value)}
                   className={inputCls} placeholder="https://..." />
               </Field>
+              <div className="border-t border-gray-100 pt-6">
+                <Field label={t('fieldNotificationScoreThreshold')} hint={t('fieldNotificationScoreThresholdHint')}>
+                  <div className="flex items-center gap-4">
+                    <input
+                      type="range" min={0} max={100} step={5}
+                      value={settings.notification_score_threshold || '0'}
+                      onChange={e => set('notification_score_threshold', e.target.value)}
+                      className="flex-1 accent-emerald-600"
+                    />
+                    <span className="text-sm font-semibold text-gray-700 w-16 text-right">
+                      {settings.notification_score_threshold || '0'} / 100
+                    </span>
+                  </div>
+                  <div className="mt-2 flex gap-2 text-xs text-gray-400">
+                    <span className="bg-gray-100 rounded-full px-2 py-0.5">0 = toujours</span>
+                    <span className="bg-yellow-50 text-yellow-700 rounded-full px-2 py-0.5">45 = À évaluer+</span>
+                    <span className="bg-green-50 text-green-700 rounded-full px-2 py-0.5">75 = À retenir seulement</span>
+                  </div>
+                </Field>
+              </div>
             </div>
           )}
 

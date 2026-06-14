@@ -431,6 +431,8 @@
     "tabAbout": "À propos",
     "tabContact": "Contact & Footer",
     "tabSeo": "SEO",
+    "fieldNotificationScoreThreshold": "Seuil de score pour notification email",
+    "fieldNotificationScoreThresholdHint": "N'envoie l'email que si le score IA du candidat ≥ ce seuil (0 = toujours envoyer)",
     "fieldCompanyName": "Nom de l'entreprise",
     "fieldLogoInitials": "Initiales du logo",
     "fieldLogoInitialsHint": "Affichées si pas de logo URL",
