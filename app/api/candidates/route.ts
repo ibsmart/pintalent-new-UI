@@ -196,9 +196,9 @@ export async function POST(req: NextRequest) {
       .run(name, phone, linkedin, cvFilename || null, cvPath || null, cvText || null, contractPreference, currentSalary, desiredSalary, tjm, noticePeriod, currentTitle, currentTitle, yearsExperience, yearsExperience, candidate.id);
   }
 
-  // Fire-and-forget Claude enrichment (title, years_experience, key_skills)
+  // Wait for Claude enrichment before responding — ensures name/title appear immediately in the list
   if (cvText) {
-    enrichCandidateWithClaude(candidate.id, cvText).catch(() => {});
+    await enrichCandidateWithClaude(candidate.id, cvText).catch(() => {});
   }
 
   // Optionally create application
@@ -214,7 +214,7 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // Fetch the latest stored data for this candidate (to return current_title etc. even if already existed)
+  // Fetch the latest stored data for this candidate (enriched by Claude)
   const stored = db.prepare('SELECT name, current_title, years_experience FROM candidates WHERE id = ?')
     .get(candidate.id) as { name: string; current_title: string; years_experience: string } | undefined;
 

@@ -1095,7 +1095,7 @@ function CandidatesContent() {
                         {(app.name || app.email || '?').charAt(0).toUpperCase()}
                       </div>
                       <div>
-                        <div className="font-semibold text-gray-900 text-sm">{app.name || <span className="text-gray-400 italic text-xs">{t('nameExtracting')}</span>}</div>
+                        <div className="font-semibold text-gray-900 text-sm">{app.name || app.email || '—'}</div>
                         <div className="text-xs text-gray-400">{app.email}</div>
                       </div>
                     </div>
